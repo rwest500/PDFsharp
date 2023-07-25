@@ -6,6 +6,7 @@ using PdfSharp.Drawing;
 using PdfSharp.Charting;
 using MigraDoc.DocumentObjectModel;
 
+
 namespace MigraDoc.Rendering.ChartMapper
 {
     /// <summary>
@@ -65,16 +66,41 @@ namespace MigraDoc.Rendering.ChartMapper
                 if (domSeries.Values.MarkerStyle is not null)
                     series.MarkerStyle = (MarkerStyle)domSeries.MarkerStyle;
 
-                foreach (DocumentObjectModel.Shapes.Charts.Point domPoint in domSeries.Elements.Cast<DocumentObjectModel.Shapes.Charts.Point>())
+                bool isxy = false;
+                if (domSeries.Elements.Count > 0)
                 {
-                    if (domPoint != null)
+                    if (domSeries.Elements[0] as MigraDoc.DocumentObjectModel.Shapes.Charts.PointX != null)
                     {
-                        Point point = series.Add(domPoint.Value);
-                        FillFormatMapper.Map(point.FillFormat, domPoint.FillFormat);
-                        LineFormatMapper.Map(point.LineFormat, domPoint.LineFormat);
+                        isxy = true;
+                        foreach (MigraDoc.DocumentObjectModel.Shapes.Charts.PointX domPointXY in domSeries.Elements.Cast<DocumentObjectModel.Shapes.Charts.PointX>())
+                        {
+                            if (domPointXY != null)
+                            {
+                                PointX point = series.Add(domPointXY.ValueX, domPointXY.ValueY);
+                                FillFormatMapper.Map(point.FillFormat, domPointXY.FillFormat);
+                                LineFormatMapper.Map(point.LineFormat, domPointXY.LineFormat);
+                            }
+                            else
+                                series.Add(double.NaN, double.NaN);
+                        }
+
                     }
-                    else
-                        series.Add(double.NaN);
+                }
+
+
+                if (!isxy)
+                {
+                    foreach (DocumentObjectModel.Shapes.Charts.Point domPoint in domSeries.Elements.Cast<DocumentObjectModel.Shapes.Charts.Point>())
+                    {
+                        if (domPoint != null)
+                        {
+                            Point point = series.Add(domPoint.Value);
+                            FillFormatMapper.Map(point.FillFormat, domPoint.FillFormat);
+                            LineFormatMapper.Map(point.LineFormat, domPoint.LineFormat);
+                        }
+                        else
+                            series.Add(double.NaN);
+                    }
                 }
             }
         }

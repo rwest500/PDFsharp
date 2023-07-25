@@ -64,6 +64,8 @@ namespace PdfSharp.Charting
         /// </summary>
         public Point Add(double value) 
             => Elements.Add(value);
+        public PointX Add(double x, double y)
+            => Elements.Add(x, y);
 
         /// <summary>
         /// Adds an array of real values to the series.

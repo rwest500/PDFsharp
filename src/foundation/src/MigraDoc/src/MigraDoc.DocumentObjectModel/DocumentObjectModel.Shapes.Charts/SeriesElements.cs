@@ -46,6 +46,17 @@ namespace MigraDoc.DocumentObjectModel.Shapes.Charts
             return point;
         }
 
+        // 6-15-15  RW Added Add( x,y )
+        /// <summary>
+        /// Adds a new point with a real value to the series.
+        /// </summary>
+        public PointX Add(double x, double y)
+        {
+            PointX point = new PointX(x, y);
+            Add(point);
+            return point;
+        }
+
         /// <summary>
         /// Adds an array of new points with real values to the series.
         /// </summary>

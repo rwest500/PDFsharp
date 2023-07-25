@@ -75,6 +75,15 @@ namespace MigraDoc.DocumentObjectModel.Shapes.Charts
             Elements.Add(values);
         }
 
+        // 6-14-15 RW added  Add( x,y )
+        /// <summary>
+        /// Adds a real value to the series.
+        /// </summary>
+        public PointX Add(double x, double y)
+        {
+            return this.Elements.Add(x, y);
+        }
+
         /// <summary>
         /// The actual value container of the series.
         /// </summary>

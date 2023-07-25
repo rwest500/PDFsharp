@@ -46,6 +46,15 @@ namespace PdfSharp.Charting
         }
 
         /// <summary>
+        /// Adds a new point with a real value to the series.
+        /// </summary>
+        public PointX Add(double x ,double y)
+        {
+            var point = new PointX(x, y);
+            Add(point);
+            return point;
+        }
+        /// <summary>
         /// Adds an array of new points with real values to the series.
         /// </summary>
         public void Add(params double[] values)
