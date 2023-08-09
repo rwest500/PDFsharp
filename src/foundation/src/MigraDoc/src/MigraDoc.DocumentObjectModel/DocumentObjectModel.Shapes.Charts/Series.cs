@@ -79,7 +79,7 @@ namespace MigraDoc.DocumentObjectModel.Shapes.Charts
         /// <summary>
         /// Adds a real value to the series.
         /// </summary>
-        public PointX Add(double x, double y)
+        public PointXY Add(double x, double y)
         {
             return this.Elements.Add(x, y);
         }

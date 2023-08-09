@@ -205,13 +205,51 @@ namespace PdfSharp.Charting.Renderers
             // Calculates the maximum number of data points over all series.
             var seriesCollection = ((Chart?)rendererInfo.Axis?.Parent)?._seriesCollection ?? NRT.ThrowOnNull<SeriesCollection>();
             int count = 0;
-            foreach (Series series in seriesCollection)
-                count = Math.Max(count, series.Count);
+            bool hasXY = false;
+            double xMin = double.MaxValue;
+            double xMax= double.MinValue;
 
-            rendererInfo.MinimumScale = 0;
-            rendererInfo.MaximumScale = count; // At least 0
-            rendererInfo.MajorTick = 1;
-            rendererInfo.MinorTick = 0.5;
+            foreach (Series series in seriesCollection)
+            {
+                if (series.Elements.Count > 0)
+                {
+                    if ((series.Elements.GetPointXY(0)) != null)
+                    {
+                        hasXY = true;
+                        foreach (PointXY xp in series.Elements)
+                        {
+                            if (!double.IsNaN(xp.ValueY))
+                            {
+                                xMin = Math.Min(xMin, xp.ValueX);
+                                xMax = Math.Max(xMax, xp.ValueX);
+                            }
+                        }
+                    }
+                }
+            }
+            if (!hasXY)
+            {
+                xMin = 0; xMax = 0;
+                foreach (Series series in seriesCollection)
+                    count = Math.Max(count, series.Count);
+                rendererInfo.MajorTick = 1;
+                rendererInfo.MinorTick = 0.5;
+            }
+            else
+            {
+                double xWidth = .5;
+                if (xMin != Double.MaxValue &&
+                    xMax != Double.MinValue)
+                {
+                    xWidth = xMax - xMin;
+                    int exponent = (int)Math.Floor(Math.Log10(xMax));
+                    rendererInfo.MajorTick = Math.Pow(10, (double) exponent);
+                    rendererInfo.MinorTick = rendererInfo.MinorTick / 2;
+                }
+            }
+
+            rendererInfo.MinimumScale = xMin;
+            rendererInfo.MaximumScale = xMax; // At least 0
             rendererInfo.MajorTickMarkWidth = DefaultMajorTickMarkWidth;
             rendererInfo.MinorTickMarkWidth = DefaultMinorTickMarkWidth;
         }
@@ -227,6 +265,7 @@ namespace PdfSharp.Charting.Renderers
             {
                 rendererInfo.XValues = new XValues();
                 XSeries xs = rendererInfo.XValues.AddXSeries();
+
                 for (double i = rendererInfo.MinimumScale + 1; i <= rendererInfo.MaximumScale; ++i)
                     xs.Add(i.ToString(rendererInfo.TickLabelsFormat));
             }

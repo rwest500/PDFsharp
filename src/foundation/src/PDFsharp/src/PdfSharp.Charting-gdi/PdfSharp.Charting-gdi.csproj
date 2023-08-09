@@ -250,8 +250,8 @@
         <Compile Include="..\PdfSharp.Charting\Charting\Point.cs">
             <Link>Charting\Point.cs</Link>
         </Compile>
-        <Compile Include="..\PdfSharp.Charting\Charting\PointX.cs">
-            <Link>Charting\PointX.cs</Link>
+        <Compile Include="..\PdfSharp.Charting\Charting\PointXY.cs">
+            <Link>Charting\PointXY.cs</Link>
         </Compile>
         <Compile Include="..\PdfSharp.Charting\Charting\PSCSR.cs">
             <Link>Charting\PSCSR.cs</Link>

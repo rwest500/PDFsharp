@@ -64,7 +64,7 @@ namespace PdfSharp.Charting
         /// </summary>
         public Point Add(double value) 
             => Elements.Add(value);
-        public PointX Add(double x, double y)
+        public PointXY Add(double x, double y)
             => Elements.Add(x, y);
 
         /// <summary>

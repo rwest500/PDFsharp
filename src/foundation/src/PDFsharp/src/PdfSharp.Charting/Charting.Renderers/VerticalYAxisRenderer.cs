@@ -295,12 +295,32 @@ namespace PdfSharp.Charting.Renderers
 
             foreach (Series series in ((Chart)_rendererParms.DrawingItem).SeriesCollection)
             {
-                foreach (Point point in series.Elements)
+                bool isXY = false;
+                if( series.Elements != null && series.Elements.Count > 0 )
                 {
-                    if (!Double.IsNaN(point.Value))
+                    if(series.Elements.GetPointXY != null  )
                     {
-                        yMin = Math.Min(yMin, point.Value);
-                        yMax = Math.Max(yMax, point.Value);
+                        isXY = true;
+                        for(int i = 0; i < series.Elements.Count; i++ )
+                        {
+                            PointXY pt = series.Elements.GetPointXY(i);
+                            if (!Double.IsNaN(pt.ValueY))
+                            {
+                                yMin = Math.Min(yMin, pt.ValueY);
+                                yMax = Math.Max(yMax, pt.ValueY);
+                            }
+                        }
+                    }
+                }
+                if (!isXY)
+                {
+                    foreach (Point point in series.Elements)
+                    {
+                        if (!Double.IsNaN(point.Value))
+                        {
+                            yMin = Math.Min(yMin, point.Value);
+                            yMax = Math.Max(yMax, point.Value);
+                        }
                     }
                 }
             }

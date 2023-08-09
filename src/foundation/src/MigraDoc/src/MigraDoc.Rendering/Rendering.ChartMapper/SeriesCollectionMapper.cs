@@ -69,14 +69,14 @@ namespace MigraDoc.Rendering.ChartMapper
                 bool isxy = false;
                 if (domSeries.Elements.Count > 0)
                 {
-                    if (domSeries.Elements[0] as MigraDoc.DocumentObjectModel.Shapes.Charts.PointX != null)
+                    if (domSeries.Elements[0] as MigraDoc.DocumentObjectModel.Shapes.Charts.PointXY != null)
                     {
                         isxy = true;
-                        foreach (MigraDoc.DocumentObjectModel.Shapes.Charts.PointX domPointXY in domSeries.Elements.Cast<DocumentObjectModel.Shapes.Charts.PointX>())
+                        foreach (MigraDoc.DocumentObjectModel.Shapes.Charts.PointXY domPointXY in domSeries.Elements.Cast<DocumentObjectModel.Shapes.Charts.PointXY>())
                         {
                             if (domPointXY != null)
                             {
-                                PointX point = series.Add(domPointXY.ValueX, domPointXY.ValueY);
+                                PointXY point = series.Add(domPointXY.ValueX, domPointXY.ValueY);
                                 FillFormatMapper.Map(point.FillFormat, domPointXY.FillFormat);
                                 LineFormatMapper.Map(point.LineFormat, domPointXY.LineFormat);
                             }

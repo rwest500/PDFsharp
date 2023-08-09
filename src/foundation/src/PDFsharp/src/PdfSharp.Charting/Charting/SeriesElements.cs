@@ -24,6 +24,11 @@ namespace PdfSharp.Charting
         /// Gets a point by its index.
         /// </summary>
         public new Point this[int index] => base[index] as Point ?? throw new InvalidOperationException("Element is not a Point.");
+        public PointXY GetPointXY(int index)
+        {
+            var pointXY = base[index] as PointXY ?? new PointXY(0, 0);
+            return pointXY;
+        }
 
         /// <summary>
         /// Creates a deep copy of this object.
@@ -48,9 +53,9 @@ namespace PdfSharp.Charting
         /// <summary>
         /// Adds a new point with a real value to the series.
         /// </summary>
-        public PointX Add(double x ,double y)
+        public PointXY Add(double x ,double y)
         {
-            var point = new PointX(x, y);
+            var point = new PointXY(x, y);
             Add(point);
             return point;
         }

@@ -45,12 +45,34 @@ namespace PdfSharp.Charting.Renderers
                 {
                     int count = sri.Series.Elements.Count;
                     XPoint[] points = new XPoint[count];
-                    for (int idx = 0; idx < count; idx++)
+                    bool isxy = false;
+                    double v;
+
+                    PointXY px = sri.Series.Elements.GetPointXY(0);
+                    if (px != null)
                     {
-                        double v = sri.Series.Elements[idx].Value;
-                        if (Double.IsNaN(v))
-                            v = 0;
-                        points[idx] = new XPoint(idx + xMajorTick / 2, v);
+                        isxy = true;
+                        for (int idx = 0; idx < count; idx++)
+                        {
+                            px = sri.Series.Elements.GetPointXY(idx);
+                            if (double.IsNaN(px.ValueY))
+                                v = 0;
+                            else
+                                v = px.ValueY;
+
+                            points[idx] = new XPoint(px.ValueX, v);
+                        }
+                    }
+
+                    if( !isxy )
+                    {
+                        for (int idx = 0; idx < count; idx++)
+                        {
+                            v = sri.Series.Elements[idx].Value;
+                            if (Double.IsNaN(v))
+                                v = 0;
+                            points[idx] = new XPoint(idx + xMajorTick / 2, v);
+                        }
                     }
 
                     matrix.TransformPoints(points);

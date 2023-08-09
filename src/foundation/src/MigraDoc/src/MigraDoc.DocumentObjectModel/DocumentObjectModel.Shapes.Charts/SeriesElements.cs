@@ -50,9 +50,9 @@ namespace MigraDoc.DocumentObjectModel.Shapes.Charts
         /// <summary>
         /// Adds a new point with a real value to the series.
         /// </summary>
-        public PointX Add(double x, double y)
+        public PointXY Add(double x, double y)
         {
-            PointX point = new PointX(x, y);
+            PointXY point = new PointXY(x, y);
             Add(point);
             return point;
         }
