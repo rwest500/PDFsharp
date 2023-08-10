@@ -163,6 +163,12 @@ namespace MigraDoc.DocumentObjectModel.Shapes.Charts
             /// See enclosing document object class for documentation of this property.
             /// </summary>
             public Double? ValueX { get; set; }
+
+            /// <summary>
+            /// Gets or sets the internal nullable implementation value of the enclosing document object property.
+            /// See enclosing document object class for documentation of this property.
+            /// </summary>
+
             public Double? ValueY { get; set; }
         }
     }

@@ -23,7 +23,7 @@ namespace PdfSharp.Charting.Renderers
         internal override RendererInfo Init()
         {
             var chart = (Chart)_rendererParms.DrawingItem;
-
+            
             var xari = new AxisRendererInfo
             {
                 Axis = chart._xAxis
@@ -32,9 +32,24 @@ namespace PdfSharp.Charting.Renderers
             {
                 var cri = (ChartRendererInfo)_rendererParms.RendererInfo;
 
-                CalculateXAxisValues(xari);
-                InitTickLabels(xari, cri.DefaultFont);
-                InitXValues(xari);
+                bool isxy = false;
+                Series s = chart.SeriesCollection[0];
+                if (s != null && s.Elements.GetPointXY(0) != null)
+                {
+                    isxy = true;
+                    InitScale(xari);
+                    if (xari.Axis != null)
+                    {
+                        InitTickLabels(xari, cri.DefaultFont);
+                    }
+                }
+
+                if( ! isxy )
+                {
+                    CalculateXAxisValues(xari);
+                    InitTickLabels(xari, cri.DefaultFont);
+                    InitXValues(xari);
+                }
                 InitAxisTitle(xari, cri.DefaultFont);
                 InitAxisLineFormat(xari);
                 InitGridlines(xari);
@@ -63,26 +78,57 @@ namespace PdfSharp.Charting.Renderers
                 }
 
                 // Calculate space used for tick labels.
+                Chart chart = (Chart)this._rendererParms.DrawingItem;
+
                 var size = new XSize(0, 0);
-                if (xari.XValues?.Count > 0)
+                bool isxy = false;
+                Series s = chart.SeriesCollection[0];
+                if (s != null && s.Elements.GetPointXY(0) != null)
                 {
-                    XSeries xs = xari.XValues[0];
-                    foreach (XValue xv in xs)
+                    isxy = true;
+                    // width of all ticklabels
+                    double xMin = xari.MinimumScale;
+                    double xMax = xari.MaximumScale;
+                    double xMajorTick = xari.MajorTick;
+                    double lineHeight = Double.MinValue;
+                    XSize labelSize = new XSize(0, 0);
+                    XGraphics gfx = this._rendererParms.Graphics;
+
+                    for (double x = xMin; x <= xMax; x += xMajorTick)
                     {
-                        if (xv != null)
-                        {
-                            string tickLabel = xv.ValueField;
-                            XSize valueSize = _rendererParms.Graphics.MeasureString(tickLabel, xari.TickLabelsFont);
-                            size.Height = Math.Max(valueSize.Height, size.Height);
-                            size.Width += valueSize.Width;
-                        }
+                        string str = x.ToString(xari.TickLabelsFormat);
+                        labelSize = gfx.MeasureString(str, xari.TickLabelsFont);
+                        size.Width += labelSize.Width;
+                        size.Height = Math.Max(size.Height, labelSize.Height);
+                        lineHeight = Math.Max(lineHeight, labelSize.Height);
                     }
+
+                    // add space for tickmarks
+                    size.Width += xari.MajorTickMarkWidth * 1.5;
                 }
 
-                // Remember space for later drawing.
-                xari.TickLabelsHeight = size.Height;
-                xari.Height = titleSize.Height + size.Height + xari.MajorTickMarkWidth;
-                xari.Width = Math.Max(titleSize.Width, size.Width);
+                if( ! isxy )
+                {
+                    if (xari.XValues?.Count > 0)
+                    {
+                        XSeries xs = xari.XValues[0];
+                        foreach (XValue xv in xs)
+                        {
+                            if (xv != null)
+                            {
+                                string tickLabel = xv.ValueField;
+                                XSize valueSize = _rendererParms.Graphics.MeasureString(tickLabel, xari.TickLabelsFont);
+                                size.Height = Math.Max(valueSize.Height, size.Height);
+                                size.Width += valueSize.Width;
+                            }
+                        }
+                    }
+
+                    // Remember space for later drawing.
+                    xari.TickLabelsHeight = size.Height;
+                    xari.Height = titleSize.Height + size.Height + xari.MajorTickMarkWidth;
+                    xari.Width = Math.Max(titleSize.Width, size.Width);
+                }
             }
         }
 
@@ -111,22 +157,6 @@ namespace PdfSharp.Charting.Renderers
 
             //XPoint startPos = new XPoint(xari.X + tickLabelStep / 2, xari.Y + /*xari.TickLabelsHeight +*/ xari.MajorTickMarkWidth);
             XPoint startPos = new XPoint(xari.X + tickLabelStep / 2, xari.Y + xari.TickLabelsHeight);
-            if (xari.MajorTickMark != TickMarkType.None)
-                startPos.Y += xari.MajorTickMarkWidth;
-            foreach (var xs in (xari.XValues ?? throw new InvalidOperationException()).Cast<XSeries>()) // BUG???
-            {
-                for (int idx = 0; idx < countTickLabels && idx < xs.Count; ++idx)
-                {
-                    var xv = xs[idx];
-                    if (xv != null!)
-                    {
-                        string tickLabel = xv.ValueField;
-                        XSize size = gfx.MeasureString(tickLabel, xari.TickLabelsFont);
-                        gfx.DrawString(tickLabel, xari.TickLabelsFont, xari.TickLabelsBrush, startPos.X - size.Width / 2, startPos.Y);
-                    }
-                    startPos.X += tickLabelStep;
-                }
-            }
 
             // Draw axis.
             // First draw tick marks, second draw axis.
@@ -134,40 +164,145 @@ namespace PdfSharp.Charting.Renderers
                    minorTickMarkStart = 0, minorTickMarkEnd = 0;
             GetTickMarkPos(xari, ref majorTickMarkStart, ref majorTickMarkEnd, ref minorTickMarkStart, ref minorTickMarkEnd);
 
+            bool isxy = false;
             var lineFormatRenderer = new LineFormatRenderer(gfx, xari.LineFormat);
             XPoint[] points = new XPoint[2];
+            Chart chart = (Chart)this._rendererParms.DrawingItem;
+            Series s = chart.SeriesCollection[0];
 
-            // Minor ticks.
-            if (xari.MinorTickMark != TickMarkType.None)
+            if (s != null && s.Elements.GetPointXY(0) != null)
             {
-                int countMinorTickMarks = (int)(xMax / xMinorTick);
-                double minorTickMarkStep = xari.Width / countMinorTickMarks;
-                startPos.X = xari.X;
-                for (int x = 0; x <= countMinorTickMarks; x++)
+                isxy = true;
+                isxy = true;
+                countTickLabels = (int)((xMax - xMin) / xMajorTick) + 1;
+                if (countTickLabels != 0)
+                    tickLabelStep = xari.Width / countTickLabels;
+                startPos = new XPoint(0, xari.Y + xari.TickLabelsHeight);
+
+                XMatrix matrix = new XMatrix();  //XMatrix.Identity;
+                                                 //matrix.TranslatePrepend(xari.X, xari.InnerRect.Y ); //-xari.InnerRect.X, xMax);
+                matrix.Scale(xari.InnerRect.Width / (xMax - xMin), 1, XMatrixOrder.Append);
+                //matrix.ScalePrepend( 1, 1); // mirror Vertical
+                matrix.Translate(xari.InnerRect.X, xari.InnerRect.Y, XMatrixOrder.Append);
+
+
+                if (xari.MajorTickMark != TickMarkType.None)
+                    startPos.Y += xari.MajorTickMarkWidth;
+
+                //matrix.OffsetX = startPos.X;
+
+                // Draw axis.
+                // First draw tick marks, second draw axis.
+                LineFormatRenderer minorTickMarkLineFormat = new LineFormatRenderer(gfx, xari.MinorTickMarkLineFormat);
+                LineFormatRenderer majorTickMarkLineFormat = new LineFormatRenderer(gfx, xari.MajorTickMarkLineFormat);
+
+                // Draw minor tick marks.
+                if (xari.MinorTickMark != TickMarkType.None)
                 {
-                    points[0].X = startPos.X + minorTickMarkStep * x;
-                    points[0].Y = minorTickMarkStart;
-                    points[1].X = points[0].X;
-                    points[1].Y = minorTickMarkEnd;
-                    lineFormatRenderer.DrawLine(points[0], points[1]);
+                    for (double x = xMin + xMinorTick; x < xMax; x += xMinorTick)
+                    {
+                        points[0].X = x;
+                        points[0].Y = minorTickMarkStart;
+                        points[1].X = x;
+                        points[1].Y = minorTickMarkEnd;
+                        matrix.TransformPoints(points);
+                        minorTickMarkLineFormat.DrawLine(points[0], points[1]);
+                    }
                 }
+
+                double lineSpace = xari.TickLabelsFont.GetHeight(gfx);
+                int cellSpace = xari.TickLabelsFont.FontFamily.GetLineSpacing(xari.TickLabelsFont.Style);
+                double xHeight = xari.TickLabelsFont.Metrics.XHeight;
+
+                XSize labelSize = new XSize(0, 0);
+                labelSize.Height = lineSpace * xHeight / cellSpace;
+
+                for (int i = 0; i < countTickLabels; ++i)
+                {
+                    double x = xMin + xMajorTick * i;
+                    string str = x.ToString(xari.TickLabelsFormat);
+                    labelSize = gfx.MeasureString(str, xari.TickLabelsFont);
+
+                    // Draw major tick marks.
+                    if (xari.MajorTickMark != TickMarkType.None)
+                    {
+                        labelSize.Width += xari.MajorTickMarkWidth * 1.5;
+                        points[0].X = x;
+                        points[0].Y = 0; // majorTickMarkStart;
+                        points[1].X = x;
+                        points[1].Y = 0; // majorTickMarkEnd;
+                        matrix.TransformPoints(points);
+                        points[1].Y += xari.MajorTickMarkWidth;
+
+                        majorTickMarkLineFormat.DrawLine(points[0], points[1]);
+                    }
+                    else
+                        labelSize.Height += SpaceBetweenLabelAndTickmark;
+
+                    // Draw label text.
+                    XPoint[] layoutText = new XPoint[1];
+                    layoutText[0].X = x;
+                    layoutText[0].Y = 0;
+                    matrix.TransformPoints(layoutText);
+                    layoutText[0].Y += labelSize.Height;
+                    layoutText[0].X -= labelSize.Width / 2; // Center text horizontally
+                    gfx.DrawString(str, xari.TickLabelsFont, xari.TickLabelsBrush, layoutText[0]);
+                }
+
             }
 
-            // Major ticks.
-            if (xari.MajorTickMark != TickMarkType.None)
+
+            if (!isxy)
             {
-                int countMajorTickMarks = (int)(xMax / xMajorTick);
-                double majorTickMarkStep = xari.Width;
-                if (countMajorTickMarks != 0)
-                    majorTickMarkStep = xari.Width / countMajorTickMarks;
-                startPos.X = xari.X;
-                for (int x = 0; x <= countMajorTickMarks; x++)
+                if (xari.MajorTickMark != TickMarkType.None)
+                    startPos.Y += xari.MajorTickMarkWidth;
+                foreach (var xs in (xari.XValues ?? throw new InvalidOperationException()).Cast<XSeries>()) // BUG???
                 {
-                    points[0].X = startPos.X + majorTickMarkStep * x;
-                    points[0].Y = majorTickMarkStart;
-                    points[1].X = points[0].X;
-                    points[1].Y = majorTickMarkEnd;
-                    lineFormatRenderer.DrawLine(points[0], points[1]);
+                    for (int idx = 0; idx < countTickLabels && idx < xs.Count; ++idx)
+                    {
+                        var xv = xs[idx];
+                        if (xv != null!)
+                        {
+                            string tickLabel = xv.ValueField;
+                            XSize size = gfx.MeasureString(tickLabel, xari.TickLabelsFont);
+                            gfx.DrawString(tickLabel, xari.TickLabelsFont, xari.TickLabelsBrush, startPos.X - size.Width / 2, startPos.Y);
+                        }
+                        startPos.X += tickLabelStep;
+                    }
+                }
+
+                // Minor ticks.
+                if (xari.MinorTickMark != TickMarkType.None)
+                {
+                    int countMinorTickMarks = (int)(xMax / xMinorTick);
+                    double minorTickMarkStep = xari.Width / countMinorTickMarks;
+                    startPos.X = xari.X;
+                    for (int x = 0; x <= countMinorTickMarks; x++)
+                    {
+                        points[0].X = startPos.X + minorTickMarkStep * x;
+                        points[0].Y = minorTickMarkStart;
+                        points[1].X = points[0].X;
+                        points[1].Y = minorTickMarkEnd;
+                        lineFormatRenderer.DrawLine(points[0], points[1]);
+                    }
+                }
+
+                // Major ticks.
+                if (xari.MajorTickMark != TickMarkType.None)
+                {
+                    int countMajorTickMarks = (int)(xMax / xMajorTick);
+                    double majorTickMarkStep = xari.Width;
+                    if (countMajorTickMarks != 0)
+                        majorTickMarkStep = xari.Width / countMajorTickMarks;
+                    startPos.X = xari.X;
+                    for (int x = 0; x <= countMajorTickMarks; x++)
+                    {
+                        points[0].X = startPos.X + majorTickMarkStep * x;
+                        points[0].Y = majorTickMarkStart;
+                        points[1].X = points[0].X;
+                        points[1].Y = majorTickMarkEnd;
+                        lineFormatRenderer.DrawLine(points[0], points[1]);
+                    }
                 }
             }
 
@@ -209,6 +344,7 @@ namespace PdfSharp.Charting.Renderers
             double xMin = double.MaxValue;
             double xMax= double.MinValue;
 
+            // Any series contain PointXY ?
             foreach (Series series in seriesCollection)
             {
                 if (series.Elements.Count > 0)
@@ -227,29 +363,26 @@ namespace PdfSharp.Charting.Renderers
                     }
                 }
             }
-            if (!hasXY)
+            if (hasXY)
+            {
+                //double xWidth = .5;
+                if (xMin != Double.MaxValue &&
+                    xMax != Double.MinValue)
+                {
+                    FineTuneXAxis(rendererInfo, xMin, xMax); //Sets: Major/Minor Tick,Min/Max Scale
+                }
+            }
+            else
             {
                 xMin = 0; xMax = 0;
                 foreach (Series series in seriesCollection)
                     count = Math.Max(count, series.Count);
                 rendererInfo.MajorTick = 1;
                 rendererInfo.MinorTick = 0.5;
-            }
-            else
-            {
-                double xWidth = .5;
-                if (xMin != Double.MaxValue &&
-                    xMax != Double.MinValue)
-                {
-                    xWidth = xMax - xMin;
-                    int exponent = (int)Math.Floor(Math.Log10(xMax));
-                    rendererInfo.MajorTick = Math.Pow(10, (double) exponent);
-                    rendererInfo.MinorTick = rendererInfo.MinorTick / 2;
-                }
+                rendererInfo.MinimumScale = xMin;
+                rendererInfo.MaximumScale = xMax; // At least 0
             }
 
-            rendererInfo.MinimumScale = xMin;
-            rendererInfo.MaximumScale = xMax; // At least 0
             rendererInfo.MajorTickMarkWidth = DefaultMajorTickMarkWidth;
             rendererInfo.MinorTickMarkWidth = DefaultMinorTickMarkWidth;
         }
@@ -328,5 +461,42 @@ namespace PdfSharp.Charting.Renderers
                     break;
             }
         }
+        /// <summary>
+        /// Calculates all values necessary for scaling the axis like minimum/maximum scale or
+        /// minor/major tick.
+        /// </summary>
+        private void InitScale(AxisRendererInfo rendererInfo)
+        {
+            double xMin, xMax;
+            CalcXAxis(out xMin, out xMax);
+            FineTuneXAxis(rendererInfo, xMin, xMax);
+
+            rendererInfo.MajorTickMarkWidth = DefaultMajorTickMarkWidth;
+            rendererInfo.MinorTickMarkWidth = DefaultMinorTickMarkWidth;
+        }
+        protected virtual void CalcXAxis(out double xMin, out double xMax)
+        {
+            xMin = double.MaxValue;
+            xMax = double.MinValue;
+
+            foreach (Series series in ((Chart)this._rendererParms.DrawingItem).SeriesCollection)
+            {
+                if (series.Elements.Count > 0)
+                {
+                    if ((series.Elements.GetPointXY(0)) != null)
+                    {
+                        foreach (PointXY xp in series.Elements)
+                        {
+                            if (!double.IsNaN(xp.ValueY))
+                            {
+                                xMin = Math.Min(xMin, xp.ValueX);
+                                xMax = Math.Max(xMax, xp.ValueX);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
     }
 }
