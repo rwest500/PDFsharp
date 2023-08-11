@@ -210,7 +210,7 @@ namespace PdfSharp.Charting.Renderers
                     }
                 }
 
-                double lineSpace = xari.TickLabelsFont.GetHeight(gfx);
+                double lineSpace = xari.TickLabelsFont.GetHeight();
                 int cellSpace = xari.TickLabelsFont.FontFamily.GetLineSpacing(xari.TickLabelsFont.Style);
                 double xHeight = xari.TickLabelsFont.Metrics.XHeight;
 
