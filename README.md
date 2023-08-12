@@ -1,4 +1,20 @@
-﻿# PDFsharp & MigraDoc 6.0
+﻿# Fork of PDFSharp
+This fork of PDFSharp contains a patch to add a scatter plot.  
+
+This is a port of a patch posted on the forumn in 2015
+https://forum.pdfsharp.net/viewtopic.php?t=2243
+
+To add X,Y points to a series:
+
+	Series series = chart.SeriesCollection.AddSeries();
+	series.ChartType = ChartType.Line;
+	series.MarkerStyle = MarkerStyle.None;
+	foreach( MyDataPoint pt in  MyPoints)
+	{
+				series.Add(pt.X, pt.Y );
+	}
+
+# PDFsharp & MigraDoc 6.0
 
 Version **6.0.0-preview-2**  
 Published **2023-04-25**
