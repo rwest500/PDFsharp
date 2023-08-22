@@ -123,12 +123,11 @@ namespace PdfSharp.Charting.Renderers
                             }
                         }
                     }
-
-                    // Remember space for later drawing.
-                    xari.TickLabelsHeight = size.Height;
-                    xari.Height = titleSize.Height + size.Height + xari.MajorTickMarkWidth;
-                    xari.Width = Math.Max(titleSize.Width, size.Width);
                 }
+                // Remember space for later drawing.
+                xari.TickLabelsHeight = size.Height;
+                xari.Height = titleSize.Height + size.Height + xari.MajorTickMarkWidth;
+                xari.Width = Math.Max(titleSize.Width, size.Width);
             }
         }
 
@@ -201,9 +200,9 @@ namespace PdfSharp.Charting.Renderers
                 {
                     for (double x = xMin + xMinorTick; x < xMax; x += xMinorTick)
                     {
-                        points[0].X = x;
+                        points[0].X = x - xMin;
                         points[0].Y = minorTickMarkStart;
-                        points[1].X = x;
+                        points[1].X = points[0].X;
                         points[1].Y = minorTickMarkEnd;
                         matrix.TransformPoints(points);
                         minorTickMarkLineFormat.DrawLine(points[0], points[1]);
@@ -227,9 +226,9 @@ namespace PdfSharp.Charting.Renderers
                     if (xari.MajorTickMark != TickMarkType.None)
                     {
                         labelSize.Width += xari.MajorTickMarkWidth * 1.5;
-                        points[0].X = x;
+                        points[0].X = x - xMin;  // Adjust x value here  8-22-23
                         points[0].Y = 0; // majorTickMarkStart;
-                        points[1].X = x;
+                        points[1].X = points[0].X;
                         points[1].Y = 0; // majorTickMarkEnd;
                         matrix.TransformPoints(points);
                         points[1].Y += xari.MajorTickMarkWidth;
@@ -241,7 +240,7 @@ namespace PdfSharp.Charting.Renderers
 
                     // Draw label text.
                     XPoint[] layoutText = new XPoint[1];
-                    layoutText[0].X = x;
+                    layoutText[0].X = x - xMin; //8-22-23 adjust for xMin
                     layoutText[0].Y = 0;
                     matrix.TransformPoints(layoutText);
                     layoutText[0].Y += labelSize.Height;

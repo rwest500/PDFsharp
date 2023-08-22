@@ -33,7 +33,7 @@ namespace PdfSharp.Charting.Renderers
 
             cri.PlotAreaRendererInfo.Matrix = new XMatrix();
             cri.PlotAreaRendererInfo.Matrix.TranslatePrepend(-xMin, yMax);
-            cri.PlotAreaRendererInfo.Matrix.Scale(plotAreaBox.Width / xMax, plotAreaBox.Height / (yMax - yMin), XMatrixOrder.Append);
+            cri.PlotAreaRendererInfo.Matrix.Scale(plotAreaBox.Width / (xMax-xMin), plotAreaBox.Height / (yMax - yMin), XMatrixOrder.Append); // 8-22-23 Use DeltaX in scale
             cri.PlotAreaRendererInfo.Matrix.ScalePrepend(1, -1);
             cri.PlotAreaRendererInfo.Matrix.Translate(plotAreaBox.X, plotAreaBox.Y, XMatrixOrder.Append);
         }
