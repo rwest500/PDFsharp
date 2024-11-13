@@ -21,7 +21,7 @@ namespace MigraDoc.DocumentObjectModel.Visitors
 #if true
             // New version without sorted list.
             int count = elements.Count;
-            for (int idx = 0; idx < count; ++idx)
+            for (int idx = 0; idx < count; idx++)
             {
                 if (elements[idx] is Paragraph paragraph)
                 {
@@ -41,7 +41,7 @@ namespace MigraDoc.DocumentObjectModel.Visitors
 #else
             SortedList splitParaList = new SortedList();
 
-            for (int idx = 0; idx < elements.Count; ++idx)
+            for (int idx = 0; idx < elements.Count; idx++)
             {
                 Paragraph paragraph = elements[idx] as Paragraph;
                 if (paragraph != null)
@@ -53,7 +53,7 @@ namespace MigraDoc.DocumentObjectModel.Visitors
             }
 
             int insertedObjects = 0;
-            for (int idx = 0; idx < splitParaList.Count; ++idx)
+            for (int idx = 0; idx < splitParaList.Count; idx++)
             {
                 int insertPosition = (int)splitParaList.GetKey(idx);
                 Paragraph[] paragraphs = (Paragraph[])splitParaList.GetByIndex(idx);
@@ -70,10 +70,15 @@ namespace MigraDoc.DocumentObjectModel.Visitors
 
         internal override void VisitDocumentObjectCollection(DocumentObjectCollection elements)
         {
+            var culture = elements.Document.EffectiveCulture;
+
+            var decimalSeparator = culture.NumberFormat.NumberDecimalSeparator;
+            var decimalSeparatorLength = decimalSeparator.Length;
+            
             List<int> textIndices = new List<int>();
             if (elements is ParagraphElements)
             {
-                for (int idx = 0; idx < elements.Count; ++idx)
+                for (int idx = 0; idx < elements.Count; idx++)
                 {
                     if (elements[idx] is Text)
                         textIndices.Add(idx);
@@ -89,8 +94,9 @@ namespace MigraDoc.DocumentObjectModel.Visitors
                 Text? text = elements[idx + insertedObjects] as Text;
                 string content = text?.Content ?? "";
                 currentString.Clear();
-                foreach (char ch in content)
+                for (var chIdx = 0; chIdx < content.Length; chIdx++)
                 {
+                    var ch = content[chIdx];
                     // TODO Add support for other breaking spaces (en space, em space, &c.).
                     switch (ch)
                     {
@@ -110,9 +116,35 @@ namespace MigraDoc.DocumentObjectModel.Visitors
 
                         case '-': // minus.
                             currentString.Append('-');
-                            elements.InsertObject(idx + insertedObjects, new Text(currentString.ToString()));
-                            ++insertedObjects;
-                            currentString.Clear();
+
+                            // Recognize minus as a sign, if it’s the first char of the currently processed string...
+                            bool isSign;
+                            if (currentString.Length != 1)
+                                isSign = false;
+                            else
+                            {
+                                var nextIdx = chIdx + 1;
+                                // ...and if it’s followed by a number...
+                                if (nextIdx < content.Length && char.IsNumber(content[nextIdx]))
+                                    isSign = true;
+                                else
+                                {
+                                    // ...or a decimal separator and a number.
+                                    var nextIdxAfterDecimalSeparator = nextIdx + decimalSeparatorLength;
+                                    if (nextIdxAfterDecimalSeparator < content.Length && char.IsNumber(content[nextIdxAfterDecimalSeparator])
+                                                                                      && content.Substring(nextIdx, decimalSeparatorLength) == decimalSeparator)
+                                        isSign = true;
+                                    else
+                                        isSign = false;
+                                }
+                            }
+                            // Only start new Text if minus is not a sign, because numbers like "-5.5" have to be stored in one Text for correct DecimalTab alignment.
+                            if (!isSign)
+                            {
+                                elements.InsertObject(idx + insertedObjects, new Text(currentString.ToString()));
+                                ++insertedObjects;
+                                currentString.Clear();
+                            }
                             break;
 
                         // Characters that allow line breaks without indication.
@@ -169,42 +201,41 @@ namespace MigraDoc.DocumentObjectModel.Visitors
                 if (formattedText.Values.Font is null && format.Values.Font is not null)
                     formattedText.Font = format.Values.Font.Clone();
                 else if (format.Values.Font is not null)
-                    FlattenFont(formattedText.Values.Font, format.Values.Font);
+                    VisitorBase.FlattenFont(formattedText.Values.Font!, format.Values.Font);
             }
 
             var parentFont = GetParentFont(formattedText);
 
-            if (formattedText.Values.Font == null && parentFont != null)
+            if (formattedText.Values.Font is null && parentFont is not null)
                 formattedText.Font = parentFont.Clone();
             else if (parentFont != null)
-                FlattenFont(formattedText.Values.Font, parentFont);
+                VisitorBase.FlattenFont(formattedText.Values.Font!, parentFont);
         }
 
         internal override void VisitHyperlink(Hyperlink hyperlink)
         {
             // If NoHyperlinkStyle is set to true, the Hyperlink shall look like the surrounding text without using the Hyperlink Style.
-            // May be used for text references, e. g. in tables, which shall not be rendered as links.
+            // May be used for text references, e.g. in tables, which shall not be rendered as links.
             if (!hyperlink.NoHyperlinkStyle)
             {
                 var styleFont = hyperlink.Document.Styles[StyleNames.Hyperlink]!.Font; // BUG ??? "!"
                 if (hyperlink.Values.Font is null)
                     hyperlink.Font = styleFont.Clone();
                 else
-                    FlattenFont(hyperlink.Values.Font, styleFont);
+                    VisitorBase.FlattenFont(hyperlink.Values.Font, styleFont);
             }
 
             var parentFont = GetParentFont(hyperlink);
             if (hyperlink.Values.Font is null && parentFont is not null)
                 hyperlink.Font = parentFont.Clone();
             else
-                FlattenFont(hyperlink.Values.Font, parentFont);
+                VisitorBase.FlattenFont(hyperlink.Values.Font!, parentFont!);
         }
 
         /// <summary>
         /// Get the font for the parent of a given object.
         /// </summary>
         /// <param name="obj">The object to start with.</param>
-        /// <returns></returns>
         /// <exception cref="InvalidOperationException">Exception that is thrown of the parent object is neither Paragraph nor Hyperlink or FormattedText.</exception>
         protected Font? GetParentFont(DocumentObject obj)
         {

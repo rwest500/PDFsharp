@@ -37,8 +37,8 @@ namespace MigraDoc.DocumentObjectModel
         protected virtual object DeepCopy()
         {
             var value = (DocumentObject)MemberwiseClone();
-            value.ResetCachedValues();
-            value.Parent = null;
+            // value.ResetCachedValues();
+            value.Parent = null; // Calls ResetCachedValues().
             value.BaseValues = (Values)BaseValues.Clone();
             value.BaseValues.Owner = value;
             return value;
@@ -179,7 +179,7 @@ namespace MigraDoc.DocumentObjectModel
             if (val != null)
             {
                 if (val.Parent != null)
-                    throw new ArgumentException(DomSR.ParentAlreadySet(val, this));
+                    throw new ArgumentException(MdDomMsgs.ParentAlreadySet(val, this).Message);
 
                 val.Parent = this;
                 val._document = null;

@@ -1,4 +1,4 @@
-// MigraDoc - Creating Documents on the Fly
+﻿// MigraDoc - Creating Documents on the Fly
 // See the LICENSE file in the solution root for more information.
 
 using System.Diagnostics;
@@ -53,7 +53,7 @@ namespace MigraDoc.DocumentObjectModel
             => (Font)DeepCopy();
 
         /// <summary>
-        /// Applies all non-null properties of a font to this font if the given font's property is different from the given refFont's property.
+        /// Applies all non-null properties of a font to this font if the given font’s property is different from the given refFont’s property.
         /// </summary>
         internal void ApplyFont(Font font, Font? refFont)
         {
@@ -111,10 +111,10 @@ namespace MigraDoc.DocumentObjectModel
             else if (font.Values.Superscript is not null)
                 Superscript = font.Superscript;
 
-            if (Values.Underline is not null)
+            if (font.Values.Underline is not null)
                 Underline = font.Underline;
 
-            if (!Values.Color.IsValueNullOrEmpty())
+            if (!font.Values.Color.IsValueNullOrEmpty())
                 Color = font.Color;
         }
 
@@ -278,10 +278,10 @@ namespace MigraDoc.DocumentObjectModel
         /// </summary>
         internal void Serialize(Serializer serializer, Font? font)
         {
-            if (Parent is FormattedText)
+            if (Parent is FormattedText parent)
             {
                 string fontStyle = "";
-                if (((FormattedText)Parent).Values.Style is null)
+                if (parent.Values.Style is null)
                 {
                     // Check if we can use a DDL keyword.
                     var notNull = CheckWhatIsNotNull();
@@ -292,21 +292,24 @@ namespace MigraDoc.DocumentObjectModel
                         return;
                     }
 
-                    // BUG Check what this code really does...    THHO4STLA: "Check if we can use a DDL keyword."
-                    if (notNull == FontProperties.Bold && Bold)  // or if (Values.Bold is true)???
+                    // Check if we can use a DDL keyword.
+                    if (notNull == FontProperties.Bold && Bold)
                     {
+                        // Only Bold is set.
                         serializer.Write("\\bold");
                         return;
                     }
 
                     if (notNull == FontProperties.Italic && Italic)
                     {
+                        // Only Italic is set.
                         serializer.Write("\\italic");
                         return;
                     }
 
                     if (notNull == FontProperties.Color)
                     {
+                        // Only Color is set.
                         serializer.Write(Invariant($"\\fontcolor({Color})"));
                         return;
                     }
@@ -321,8 +324,8 @@ namespace MigraDoc.DocumentObjectModel
                     serializer.WriteSimpleAttribute("Name", Name);
 
 #if DEBUG_ // Test
-                if (!_size.IsNull && Size != 0 && Size.Point == 0)
-                    GetType();
+                if (Size != Unit.Empty && Size != 0 && Size.Point == 0)
+                    _ = typeof(int);
 #endif
 
                 if (!Values.Size.IsValueNullOrEmpty())
@@ -351,7 +354,7 @@ namespace MigraDoc.DocumentObjectModel
             {
                 int pos = serializer.BeginContent("Font");
 
-                // Don't write null values if font is null.
+                // Don’t write null values if font is null.
                 // Do write null values if font is not null!
                 var empty = String.IsNullOrEmpty(Values.Name);
                 if ((font == null && !empty) ||
@@ -363,11 +366,10 @@ namespace MigraDoc.DocumentObjectModel
 #if DEBUG_
                 // Test
                 if (!_size.IsNull && Size != 0 && Size.Point == 0)
-                    GetType();
+                    _ = typeof(int);
 #endif
 
-                if (!Values.Size.IsValueNullOrEmpty() &&
-                    (font == null || Size != font.Size))
+                if (!Values.Size.IsValueNullOrEmpty() && (font == null || Size != font.Size))
                     serializer.WriteSimpleAttribute("Size", Size);
                 // NBool and NEnum have to be compared directly to check whether the value is Null.
 

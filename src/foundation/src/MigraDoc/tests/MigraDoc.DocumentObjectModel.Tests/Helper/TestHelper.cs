@@ -1,26 +1,29 @@
-﻿using FluentAssertions;
-using MigraDoc.DocumentObjectModel.Tables;
+﻿// MigraDoc - Creating Documents on the Fly
+// See the LICENSE file in the solution root for more information.
+
 using PdfSharp.Fonts;
 using PdfSharp.Snippets.Font;
+using MigraDoc.DocumentObjectModel.Tables;
+using FluentAssertions;
 
 namespace MigraDoc.DocumentObjectModel.Tests.Helper
 {
     public class TestHelper
     {
-        public static void InitializeFontResolver()
-        {
-            GlobalFontSettings.FontResolver ??= NewFontResolver.Get();
-        }
+        //[Obsolete("Not needed anymore")]
+        //public static void InitializeFontResolver()
+        //{
+        //}
 
-        //[Obsolete("Not needed when using NewFontResolver")]
-        public static void InitializeFontResolverWithSegoeWpAsDefault(Document doc)
-        {
-            InitializeFontResolver();
+        //[Obsolete("Not needed anymore")]
+        //public static void InitializeFontResolverWithSegoeWpAsDefault(Document doc)
+        //{
+        //    InitializeFontResolver();
 
-            var style = doc.Styles[StyleNames.Normal];
-            style.Should().NotBeNull();
-            //style!.Font.Name = "segoe wp";
-        }
+        //    var style = doc.Styles[StyleNames.Normal];
+        //    style.Should().NotBeNull();
+        //    //style!.Font.Name = "segoe wp";
+        //}
 
         public static void RemoveStyles(Document doc)
         {
@@ -130,7 +133,6 @@ namespace MigraDoc.DocumentObjectModel.Tests.Helper
             table.AddColumn(Unit.FromCentimeter(2));
             table.AddColumn(Unit.FromCentimeter(3));
 
-
             var row = table.AddRow();
             row.HeadingFormat = true;
 
@@ -142,14 +144,12 @@ namespace MigraDoc.DocumentObjectModel.Tests.Helper
             cell.Style = StyleNames.Heading3;
             cell.AddParagraph("Heading C");
 
-
             row = table.AddRow();
             row.Shading.Color = Colors.Cyan;
             cell = row[0];
             cell.MergeRight = 1;
             cell.AddParagraph("A1 + B1");
             row[2].AddParagraph("C1");
-
 
             row = table.AddRow();
             cell = row[0];
@@ -164,7 +164,6 @@ namespace MigraDoc.DocumentObjectModel.Tests.Helper
             cell.Borders.Width = Unit.FromPoint(2);
             cell.AddParagraph("C2");
 
-
             row = table.AddRow();
             row.Shading.Color = Colors.Cyan;
             cell = row[1];
@@ -174,7 +173,6 @@ namespace MigraDoc.DocumentObjectModel.Tests.Helper
             cell = row[2];
             cell.Format.Alignment = ParagraphAlignment.Justify;
             cell.AddParagraph("C3");
-
 
             row = table.AddRow();
             row.KeepWith = 1;
@@ -188,7 +186,6 @@ namespace MigraDoc.DocumentObjectModel.Tests.Helper
             p.AddTab();
             p.AddText("C4");
 
-
             row = table.AddRow();
             row.Shading.Color = Colors.Cyan;
             row.KeepWith = 1;
@@ -199,7 +196,6 @@ namespace MigraDoc.DocumentObjectModel.Tests.Helper
             cell = row[2];
             p = CreateParagraphWithFormattedText();
             cell.Add(p);
-
 
             return table;
         }
@@ -217,7 +213,6 @@ namespace MigraDoc.DocumentObjectModel.Tests.Helper
 
             yield return sec;
 
-
             sec = new Section();
             sec.Footers.FirstPage.AddParagraph("FirstPageFooter");
 
@@ -231,7 +226,6 @@ namespace MigraDoc.DocumentObjectModel.Tests.Helper
                 sec.Add(p1);
 
             yield return sec;
-
 
             sec = new Section();
             sec.AddParagraph("Test Paragraph");

@@ -47,7 +47,7 @@ namespace PdfSharp.Charting
         /// <summary>
         /// Gets or sets a numeric format string for the DataLabel.
         /// </summary>
-        public string Format { get; set; } = String.Empty;
+        public string Format { get; set; } = "";
 
         /// <summary>
         /// Gets the Font for the DataLabel.
@@ -66,7 +66,7 @@ namespace PdfSharp.Charting
             set
             {
                 if (!Enum.IsDefined(typeof(DataLabelPosition), value))
-                    throw new InvalidEnumArgumentException("value", (int)value, typeof(DataLabelPosition));
+                    throw new InvalidEnumArgumentException(nameof(value), (int)value, typeof(DataLabelPosition));
 
                 _position = value;
                 _positionInitialized = true;
@@ -86,7 +86,7 @@ namespace PdfSharp.Charting
             set
             {
                 if (!Enum.IsDefined(typeof(DataLabelType), value))
-                    throw new InvalidEnumArgumentException("value", (int)value, typeof(DataLabelType));
+                    throw new InvalidEnumArgumentException(nameof(value), (int)value, typeof(DataLabelType));
 
                 _type = value;
                 _typeInitialized = true;

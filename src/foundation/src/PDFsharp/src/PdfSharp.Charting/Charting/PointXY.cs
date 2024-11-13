@@ -6,8 +6,7 @@ namespace PdfSharp.Charting
     /// <summary>
     /// Represents a formatted value on the data series.
     /// </summary>
-    public class PointXY
-        : ChartObject
+    public class PointXY : ChartObject
     {
         /// <summary>
         /// Initializes a new instance of the Point class.

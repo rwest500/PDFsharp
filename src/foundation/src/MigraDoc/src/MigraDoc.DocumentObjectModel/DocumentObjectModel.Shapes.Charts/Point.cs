@@ -50,7 +50,7 @@ namespace MigraDoc.DocumentObjectModel.Shapes.Charts
         }
 
         /// <summary>
-        /// Gets the line format of the data point's border.
+        /// Gets the line format of the data point’s border.
         /// </summary>
         public LineFormat LineFormat
         {

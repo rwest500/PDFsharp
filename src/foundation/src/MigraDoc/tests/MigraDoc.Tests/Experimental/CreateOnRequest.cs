@@ -1,9 +1,13 @@
-﻿using System;
+﻿// MigraDoc - Creating Documents on the Fly
+// See the LICENSE file in the solution root for more information.
+
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using Xunit;
 
+#if NET7_0_OR_GREATER
 namespace MigraDoc.Tests.Experimental.CreateOnRequest
 {
     public class Paragraph
@@ -34,10 +38,12 @@ namespace MigraDoc.Tests.Experimental.CreateOnRequest
     public interface ISectionInterface<in T> where T : ISectionInterface<T>
     {
         Collection<Paragraph> Paragraphs { get; set; }
-        Paragraph AddParagraph(Paragraph paragraph);
-        string ToString();
-        bool Equals(object o);
 
+        Paragraph AddParagraph(Paragraph paragraph);
+
+        string ToString();
+
+        bool Equals(object o);
 
         static abstract bool operator ==(T c1, T c2);
 
@@ -324,3 +330,4 @@ namespace MigraDoc.Tests.Experimental.CreateOnRequest
         }
     }
 }
+#endif

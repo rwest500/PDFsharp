@@ -1,10 +1,7 @@
 // MigraDoc - Creating Documents on the Fly
 // See the LICENSE file in the solution root for more information.
 
-using System;
 using System.Diagnostics;
-using System.IO;
-using System.Text;
 using MigraDoc.DocumentObjectModel;
 using MigraDoc.Rendering;
 using PdfSharp;
@@ -143,33 +140,33 @@ namespace MigraDocTests.Helpers
                 string originalFileName = Path.Combine(OutputDirectory, "!!TestResult_References.pdf");
                 var pdfOriginalDocument = CreateOrOpenResultFile(originalFileName);
                 PdfPage pageOrg = pdfOriginalDocument.AddPage(); // Page from original/reference PDF.
-                for (int i = 0; i < total; ++i)
+                for (int idx = 0; idx < total; idx++)
                 {
-                    bool landscape = ((1 << i) & bitmapLandscape) != 0;
+                    bool landscape = ((1 << idx) & bitmapLandscape) != 0;
 
                     var page = pdfResultDocument.AddPage(); // Page from generated PDF.
                     page.Orientation = landscape ? PageOrientation.Landscape : PageOrientation.Portrait;
                     var gfx = XGraphics.FromPdfPage(page);
-                    var box = new XRect(0, 0, page.Width, page.Height);
+                    var box = new XRect(0, 0, page.Width.Point, page.Height.Point);
 
                     // Copy page.
-                    CopyPdfPage(inputDocument1, gfx, i + 1, box);
+                    CopyPdfPage(inputDocument1, gfx, idx + 1, box);
 
                     // Write document file name and page number on each page.
                     box.Inflate(0, -10);
-                    gfx.DrawString(String.Format("- {2} - {0} of {1} -", i + 1, pages1, testName),
+                    gfx.DrawString(String.Format("- {2} - {0} of {1} -", idx + 1, pages1, testName),
                                    font, XBrushes.Red, box, format);
 
                     pageOrg.Orientation = page.Orientation;
                     var gfxOrg = XGraphics.FromPdfPage(pageOrg);
-                    var boxOrg = new XRect(0, 0, pageOrg.Width, pageOrg.Height);
+                    var boxOrg = new XRect(0, 0, pageOrg.Width.Point, pageOrg.Height.Point);
 
                     // Copy page.
-                    CopyPdfPage(inputDocument2, gfxOrg, i + 1, boxOrg);
+                    CopyPdfPage(inputDocument2, gfxOrg, idx + 1, boxOrg);
 
                     // Write document file name and page number on each page.
                     boxOrg.Inflate(0, -10);
-                    gfxOrg.DrawString(String.Format("- {0} of {1} -", i + 1, pages2),
+                    gfxOrg.DrawString(String.Format("- {0} of {1} -", idx + 1, pages2),
                                       font, XBrushes.Red, boxOrg, format);
                 }
                 pdfOriginalDocument.Save(originalFileName);
@@ -185,16 +182,16 @@ namespace MigraDocTests.Helpers
                 string resultFileNameSideBySide = Path.Combine(OutputDirectory, "!!TestResult_side_by_side.pdf");
                 var pdfResultDocumentSideBySide = CreateOrOpenResultFile(resultFileNameSideBySide);
 
-                for (int i = 0; i < total; ++i)
+                for (int idx = 0; idx < total; idx++)
                 {
-                    bool landscape = ((1 << i) & bitmapLandscape) != 0;
+                    bool landscape = ((1 << idx) & bitmapLandscape) != 0;
                     var page = pdfResultDocumentSideBySide.AddPage();
                     page.Orientation = landscape ? PageOrientation.Portrait : PageOrientation.Landscape;
                     var gfx = XGraphics.FromPdfPage(page);
                     //gfx.DrawRectangle(XBrushes.GhostWhite, new XRect(0, 0, 1000, 1000));
 
-                    double width = page.Width;
-                    double height = page.Height;
+                    double width = page.Width.Point;
+                    double height = page.Height.Point;
                     if (landscape)
                     {
                         // Landscape.
@@ -202,20 +199,20 @@ namespace MigraDocTests.Helpers
                         var box = new XRect(0, 0, width, height / 2);
 
                         // Copy page.
-                        CopyPdfPage(inputDocument1, gfx, i + 1, box);
+                        CopyPdfPage(inputDocument1, gfx, idx + 1, box);
 
                         // Write document file name and page number on each page.
                         box.Inflate(0, -10);
-                        gfx.DrawString(FormattableString.Invariant($"- {testName} - {i + 1} of {pages1} -"),
+                        gfx.DrawString(FormattableString.Invariant($"- {testName} - {idx + 1} of {pages1} -"),
                                        font, XBrushes.Red, box, format);
 
                         box = new XRect(0, height / 2, width, height / 2);
                         // Copy page
-                        CopyPdfPage(inputDocument2, gfx, i + 1, box);
+                        CopyPdfPage(inputDocument2, gfx, idx + 1, box);
 
                         // Write document file name and page number on each page.
                         box.Inflate(0, -10);
-                        gfx.DrawString(FormattableString.Invariant($"- {i + 1} of {pages2} -"),
+                        gfx.DrawString(FormattableString.Invariant($"- {idx + 1} of {pages2} -"),
                                        font, XBrushes.Red, box, format);
                     }
                     else
@@ -225,20 +222,20 @@ namespace MigraDocTests.Helpers
                         var box = new XRect(0, 0, width / 2, height);
 
                         // Copy page
-                        CopyPdfPage(inputDocument1, gfx, i + 1, box);
+                        CopyPdfPage(inputDocument1, gfx, idx + 1, box);
 
                         // Write document file name and page number on each page.
                         box.Inflate(0, -10);
-                        gfx.DrawString(FormattableString.Invariant($"- {testName} - {i + 1} of {pages1} -"),
+                        gfx.DrawString(FormattableString.Invariant($"- {testName} - {idx + 1} of {pages1} -"),
                                        font, XBrushes.Red, box, format);
 
                         box = new XRect(width / 2, 0, width / 2, height);
                         // Copy page.
-                        CopyPdfPage(inputDocument2, gfx, i + 1, box);
+                        CopyPdfPage(inputDocument2, gfx, idx + 1, box);
 
                         // Write document file name and page number on each page.
                         box.Inflate(0, -10);
-                        gfx.DrawString(FormattableString.Invariant($"- {i + 1} of {pages2} -"),
+                        gfx.DrawString(FormattableString.Invariant($"- {idx + 1} of {pages2} -"),
                                        font, XBrushes.Red, box, format);
                     }
                 }

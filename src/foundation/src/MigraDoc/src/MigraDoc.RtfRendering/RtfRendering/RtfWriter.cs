@@ -1,7 +1,6 @@
 // MigraDoc - Creating Documents on the Fly
 // See the LICENSE file in the solution root for more information.
 
-using System.IO;
 using System.Text;
 
 namespace MigraDoc.RtfRendering
@@ -136,7 +135,7 @@ namespace MigraDoc.RtfRendering
         public void WriteHex(uint hex)
         {
             if (hex > 0xFF)
-                //TODO: Fehlermeldung
+                //TODO: Error message? Debug.Assert?
                 return;
 
             _textWriter.Write(@"\'" + hex.ToString("x"));

@@ -1,14 +1,18 @@
 // PDFsharp - A .NET library for processing PDF
 // See the LICENSE file in the solution root for more information.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace PdfSharp.Drawing
 {
     enum FontWeightValue
     {
         // Values taken from WPF.
         Thin = 100,
+        UltraLight = 150,  // StL: added 24-03-04
         ExtraLight = 200,
         Light = 300,
+        SemiLight = 350,  // StL: added 24-03-04
         Normal = 400,
         Medium = 500,
         SemiBold = 600,
@@ -31,16 +35,20 @@ namespace PdfSharp.Drawing
                     fontWeight = Thin;
                     return true;
 
-                case "extralight":
-                    fontWeight = ExtraLight;
-                    return true;
-
                 case "ultralight":
                     fontWeight = UltraLight;
                     return true;
 
+                case "extralight":  // StL: added 24-03-04
+                    fontWeight = ExtraLight;
+                    return true;
+
                 case "light":
                     fontWeight = Light;
+                    return true;
+
+                case "semilight":  // StL: added 24-03-04
+                    fontWeight = SemiLight;
                     return true;
 
                 case "normal":
@@ -100,12 +108,16 @@ namespace PdfSharp.Drawing
             return false;
         }
 
-        internal static bool FontWeightToString(int weight, out string? convertedValue)
+        internal static bool FontWeightToString(int weight, [NotNullWhen(true)] out string? convertedValue)
         {
             switch (weight)
             {
                 case (int)FontWeightValue.Thin:
                     convertedValue = "Thin";
+                    return true;
+
+                case (int)FontWeightValue.UltraLight:  // StL: added 24-03-04
+                    convertedValue = "UltraLight";
                     return true;
 
                 case (int)FontWeightValue.ExtraLight:
@@ -114,6 +126,10 @@ namespace PdfSharp.Drawing
 
                 case (int)FontWeightValue.Light:
                     convertedValue = "Light";
+                    return true;
+
+                case (int)FontWeightValue.SemiLight:  // StL: added 24-03-04
+                    convertedValue = "SemiLight";
                     return true;
 
                 case (int)FontWeightValue.Normal:
@@ -148,10 +164,30 @@ namespace PdfSharp.Drawing
             return false;
         }
 
+        internal static XFontWeight FontWeightFromFaceName(string faceName)
+        {
+            var parts = faceName.Split(' ');
+            if (parts.Length < 2)
+                return XFontWeights.Normal;
+
+            for (int idx = 1; idx < parts.Length; idx++)
+            {
+                var xFontWeight = XFontWeights.Normal;
+                if (FontWeightStringToKnownWeight(parts[idx], CultureInfo.InvariantCulture, ref xFontWeight))
+                    return xFontWeight;
+            }
+            return XFontWeights.Normal;
+        }
+
         /// <summary>
         /// Specifies a "Thin" font weight.
         /// </summary>
         public static XFontWeight Thin => new XFontWeight((int)FontWeightValue.Thin);
+
+        ///// <summary>
+        ///// Specifies an "ExtraLight" font weight.
+        ///// </summary>
+        //public static XFontWeight UltraLight => new XFontWeight((int)FontWeightValue.ExtraLight);  // StL: added 24-03-04
 
         /// <summary>
         /// Specifies an "ExtraLight" font weight.
@@ -161,12 +197,17 @@ namespace PdfSharp.Drawing
         /// <summary>
         /// Specifies an "UltraLight" font weight.
         /// </summary>
-        public static XFontWeight UltraLight => new XFontWeight((int)FontWeightValue.ExtraLight);
+        public static XFontWeight UltraLight => new XFontWeight((int)FontWeightValue.UltraLight);  // StL: added 24-03-04
 
         /// <summary>
         /// Specifies a "Light" font weight.
         /// </summary>
         public static XFontWeight Light => new XFontWeight((int)FontWeightValue.Light);
+
+        /// <summary>
+        /// Specifies a "SemiLight" font weight.
+        /// </summary>
+        public static XFontWeight SemiLight => new XFontWeight((int)FontWeightValue.SemiLight);  // StL: added 24-03-04
 
         /// <summary>
         /// Specifies a "Normal" font weight.

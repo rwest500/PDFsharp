@@ -4,7 +4,6 @@
 #define VARIANT1  // Walrod, Battlestar, X-Files
 #define VARIANT2_  // Walrod, Battlestar, X-Files
 
-
 #define TIMES_NEW_ROMAN_  // Times New Roman
 #define SEGOE_UI  // Segoe UI
 #define SEGOE_UI_2_  // Segoe UI via platform API
@@ -32,7 +31,7 @@ using System.Drawing;
 using System.Windows;
 using System.Windows.Media;
 #endif
-#if UWP
+#if WUI
 using Windows.UI.Xaml.Media;
 #endif
 using PdfSharp.Drawing;
@@ -98,7 +97,6 @@ namespace PdfSharp.Snippets.Font
             }
             EndBox(gfx);
 #endif
-
 
 #if BOX3
             BeginBox(gfx, 3, BoxOptions.Tile, "Typefaces of " + FamilyName);

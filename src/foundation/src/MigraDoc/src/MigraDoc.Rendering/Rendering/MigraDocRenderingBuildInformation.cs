@@ -4,6 +4,8 @@
 using System.Reflection;
 using System.Runtime.Versioning;
 
+#pragma warning disable 0436
+
 namespace MigraDoc.Rendering
 {
     /// <summary>
@@ -32,6 +34,19 @@ namespace MigraDoc.Rendering
         public static string AssemblyTitle
             => ((AssemblyTitleAttribute)Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(AssemblyTitleAttribute), false)[0]).Title;
 
+#if !NET6_0_OR_GREATER
+        /// <summary>
+        /// Gets the target platform attribute value.
+        /// </summary>
+        public static string TargetPlatform
+        {
+            get
+            {
+                // TargetPlatformAttribute is not available under .NET Framework.
+                return "Unknown Target Platform";
+            }
+        }
+#else
         /// <summary>
         /// Gets the target platform attribute value.
         /// </summary>
@@ -40,8 +55,9 @@ namespace MigraDoc.Rendering
             get
             {
                 var attribute = Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(TargetPlatformAttribute), false);
-                return attribute.Length == 1 ? ((TargetPlatformAttribute)attribute[0]).PlatformName : "";
+                return attribute.Length == 1 ? ((TargetPlatformAttribute)attribute[0]).PlatformName : "Unknown Target Platform";
             }
         }
+#endif
     }
 }

@@ -1,4 +1,4 @@
-// MigraDoc - Creating Documents on the Fly
+﻿// MigraDoc - Creating Documents on the Fly
 // See the LICENSE file in the solution root for more information.
 
 using System.Diagnostics;
@@ -28,7 +28,7 @@ namespace MigraDoc.RtfRendering
         }
 
         /// <summary>
-        /// Renders the footnote's reference symbol.
+        /// Renders the footnote’s reference symbol.
         /// </summary>
         internal void RenderReference()
         {
@@ -41,9 +41,8 @@ namespace MigraDoc.RtfRendering
             _rtfWriter.EndContent();
         }
 
-
         /// <summary>
-        /// Renders the footnote's content.
+        /// Renders the footnote’s content.
         /// </summary>
         void RenderContent()
         {

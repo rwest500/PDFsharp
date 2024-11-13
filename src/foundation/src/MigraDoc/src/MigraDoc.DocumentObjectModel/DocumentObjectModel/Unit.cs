@@ -7,7 +7,7 @@ namespace MigraDoc.DocumentObjectModel
     /// A Unit consists of a numerical value and a UnitType like Centimeter, Millimeter, or Inch.
     /// Several conversions between different measures are supported.
     /// </summary>
-    public struct Unit : IFormattable, INullableValue
+    public struct Unit : IFormattable, INullableValue, IComparable<Unit?>, IComparable
     {
         /// <summary>
         /// Initializes a new instance of the Unit class with type set to point.
@@ -25,7 +25,7 @@ namespace MigraDoc.DocumentObjectModel
         public Unit(double value, UnitType type)
         {
             if (!Enum.IsDefined(typeof(UnitType), type))
-                throw new /*InvalidEnum*/ArgumentException(DomSR.InvalidEnumValue(type), nameof(type));
+                throw new /*InvalidEnum*/ArgumentException(MdDomMsgs.InvalidEnumValue(type).Message, nameof(type));
 
             _value = (float)value;
             _type = type;
@@ -68,7 +68,7 @@ namespace MigraDoc.DocumentObjectModel
 
         // Explicit interface implementations cannot contain access specifiers, i.e. they are accessible by a
         // cast operator only, e.g. ((IDomValue)obj).IsNull.
-        // Therefore the second IsNull-Property is used as a handy shortcut.
+        // Therefore, the second IsNull-Property is used as a handy shortcut.
         /// <summary>
         /// Determines whether this instance is null (not set).
         /// </summary>
@@ -440,7 +440,6 @@ namespace MigraDoc.DocumentObjectModel
                 //NRT.ThrowOnNull("string parameter was null"); // BUG Throwing on null.
                 return Zero;
 
-
             var unit = Zero;
             value = value.Trim();
 
@@ -465,7 +464,7 @@ namespace MigraDoc.DocumentObjectModel
             }
             catch (FormatException ex)
             {
-                throw new ArgumentException(DomSR.InvalidUnitValue(value), ex);
+                throw new ArgumentException(MdDomMsgs.InvalidUnitValue(value).Message, ex);
             }
 
             var typeStr = value[valLen..].Trim().ToLower();
@@ -494,7 +493,7 @@ namespace MigraDoc.DocumentObjectModel
                     break;
 
                 default:
-                    throw new ArgumentException(DomSR.InvalidUnitType(typeStr));
+                    throw new ArgumentException(MdDomMsgs.InvalidUnitType(typeStr).Message);
             }
 
             return unit;
@@ -536,18 +535,20 @@ namespace MigraDoc.DocumentObjectModel
         /// <summary>
         /// Returns a double value as point.
         /// </summary>
+        [Obsolete("Implicit conversion to double is obsolete, because it led to misunderstandings and unexpected behavior. Use e. g. the Point property instead.")]
         public static implicit operator double(Unit value)
             => value.Point;
 
         /// <summary>
         /// Returns a float value as point.
         /// </summary>
+        [Obsolete("Implicit conversion to float is obsolete, because it led to misunderstandings and unexpected behavior. Use e. g. the Point property instead.")]
         public static implicit operator float(Unit value)
             => (float)value.Point;
 
         /// <summary>
-        /// Memberwise comparison. To compare by value, 
-        /// use code like Math.Abs(a.Point - b.Point) &lt; 1e-5.
+        /// Memberwise comparison checking exact value and unit.
+        /// To compare by value tolerating rounding errors, use IsSameValue() or code like Math.Abs(a.Point - b.Point) &lt; 1e-5.
         /// </summary>
         public static bool operator ==(Unit l, Unit r)
         {
@@ -558,11 +559,213 @@ namespace MigraDoc.DocumentObjectModel
         }
 
         /// <summary>
-        /// Memberwise comparison. To compare by value, 
-        /// use code like Math.Abs(a.Point - b.Point) &lt; 1e-5.
+        /// Memberwise comparison checking exact value and unit.
+        /// To compare by value tolerating rounding errors, use IsSameValue() or code like Math.Abs(a.Point - b.Point) &lt; 1e-5.
+        /// </summary>
+        public static bool operator ==(Unit? l, Unit? r)
+        {
+            if (!l.HasValue && !r.HasValue)
+                return true;
+
+            if (!l.HasValue || !r.HasValue)
+                return false;
+
+            return l.Value == r.Value;
+        }
+
+        /// <summary>
+        /// Memberwise comparison checking exact value and unit.
+        /// To compare by value tolerating rounding errors, use code like Math.Abs(a.Point - b.Point) &lt; 1e-5.
         /// </summary>
         public static bool operator !=(Unit l, Unit r)
             => !(l == r);
+
+        /// <summary>
+        /// Memberwise comparison checking exact value and unit.
+        /// To compare by value tolerating rounding errors, use code like Math.Abs(a.Point - b.Point) &lt; 1e-5.
+        /// </summary>
+        public static bool operator !=(Unit? l, Unit? r)
+            => !(l == r);
+
+        /// <summary>
+        /// Compares two Unit values.
+        /// </summary>
+        public static bool operator >(Unit l, Unit r) => Compare(l, r) > 0;
+
+        /// <summary>
+        /// Compares two Unit? values.
+        /// </summary>
+        public static bool operator >(Unit? l, Unit? r) => Compare(l, r) > 0;
+
+        /// <summary>
+        /// Compares two Unit values.
+        /// </summary>
+        public static bool operator >=(Unit l, Unit r) => Compare(l, r) >= 0;
+
+        /// <summary>
+        /// Compares two Unit? values.
+        /// </summary>
+        public static bool operator >=(Unit? l, Unit? r) => Compare(l, r) >= 0;
+
+        /// <summary>
+        /// Compares two Unit values.
+        /// </summary>
+        public static bool operator <(Unit l, Unit r) => Compare(l, r) < 0;
+
+        /// <summary>
+        /// Compares two Unit? values.
+        /// </summary>
+        public static bool operator <(Unit? l, Unit? r) => Compare(l, r) < 0;
+
+        /// <summary>
+        /// Compares two Unit values.
+        /// </summary>
+        public static bool operator <=(Unit l, Unit r) => Compare(l, r) <= 0;
+
+        /// <summary>
+        /// Compares two Unit? values.
+        /// </summary>
+        public static bool operator <=(Unit? l, Unit? r) => Compare(l, r) <= 0;
+
+        /// <summary>
+        /// Returns the negative value of a Unit.
+        /// </summary>
+        public static Unit operator -(Unit value) => new(-value.Value, value.Type);
+
+        /// <summary>
+        /// Adds a Unit to a Unit.
+        /// </summary>
+        public static Unit operator +(Unit l, Unit r)
+        {
+            if (l.Type != r.Type)
+                r.ConvertType(l.Type);
+
+            return new(l.Value + r.Value, l.Type);
+        }
+
+        /// <summary>
+        /// Adds a Unit? to a Unit?.
+        /// </summary>
+        public static Unit? operator +(Unit? l, Unit? r) => !l.HasValue || !r.HasValue ? null : l.Value + r.Value;
+
+        /// <summary>
+        /// Adds a string parsed as Unit to a Unit.
+        /// </summary>
+        public static Unit operator +(Unit l, string r)
+        {
+            var u = (Unit)r;
+            return l + u;
+        }
+
+        /// <summary>
+        /// Adds a string parsed as Unit to a Unit?.
+        /// </summary>
+        public static Unit? operator +(Unit? l, string r) => !l.HasValue ? null : l.Value + r;
+
+        /// <summary>
+        /// Subtracts a Unit from a Unit.
+        /// </summary>
+        public static Unit operator -(Unit l, Unit r)
+        {
+            if (l.Type != r.Type)
+                r.ConvertType(l.Type);
+
+            return new(l.Value - r.Value, l.Type);
+        }
+
+        /// <summary>
+        /// Subtracts a Unit? from a Unit?.
+        /// </summary>
+        public static Unit? operator -(Unit? l, Unit? r) => !l.HasValue || !r.HasValue ? null : l.Value - r.Value;
+
+        /// <summary>
+        /// Subtracts a string parsed as Unit from a Unit.
+        /// </summary>
+        public static Unit operator -(Unit l, string r)
+        {
+            var u = (Unit)r;
+            return l - u;
+        }
+
+        /// <summary>
+        /// Subtracts a string parsed as Unit from a Unit?.
+        /// </summary>
+        public static Unit? operator -(Unit? l, string r) => !l.HasValue ? null : l.Value - r;
+
+        /// <summary>
+        /// Multiplies a Unit with a double.
+        /// </summary>
+        public static Unit operator *(Unit l, double r)
+        {
+            return new(l.Value * r, l.Type);
+        }
+
+        /// <summary>
+        /// Multiplies a Unit? with a double.
+        /// </summary>
+        // ReSharper disable once MergeConditionalExpression
+        public static Unit? operator *(Unit? l, double r) => !l.HasValue ? null : l.Value * r;
+
+        /// <summary>
+        /// Divides a Unit by a double.
+        /// </summary>
+        public static Unit operator /(Unit l, double r)
+        {
+            return new(l.Value / r, l.Type);
+        }
+
+        /// <summary>
+        /// Divides a Unit? by a double.
+        /// </summary>
+        // ReSharper disable once MergeConditionalExpression
+        public static Unit? operator /(Unit? l, double r) => !l.HasValue ? null : l.Value / r;
+
+        static int Compare(Unit l, Unit r)
+        {
+            return l.Point.CompareTo(r.Point);
+        }
+
+        static int Compare(Unit? l, Unit? r)
+        {
+            if (!l.HasValue && !r.HasValue)
+                return 0;
+
+            if (!l.HasValue)
+                return -1;
+
+            if (!r.HasValue)
+                return 1;
+
+            return Compare(l.Value, r.Value);
+        }
+
+        /// <summary>
+        /// Compares this Unit with another Unit value.
+        /// </summary>
+        public int CompareTo(Unit other) => Math.Sign(Point - other.Point);
+
+        /// <summary>
+        /// Compares this Unit with another Unit? value.
+        /// </summary>
+        public int CompareTo(Unit? other) => other.HasValue ? CompareTo(other.Value) : 1;
+
+        /// <summary>
+        /// Compares this Unit with another object.
+        /// </summary>
+        public int CompareTo(object? obj) => obj is Unit unit ? CompareTo(unit) : 1;
+
+        /// <summary>
+        /// Compares the actual values of this Unit and another Unit value tolerating rounding errors.
+        /// </summary>
+        public bool IsSameValue(Unit other)
+        {
+            return Math.Abs(Point - other.Point) <= 1e-5;
+        }
+
+        /// <summary>
+        /// Compares the actual values of this Unit and another Unit? value tolerating rounding errors.
+        /// </summary>
+        public bool IsSameValue(Unit? other) => other.HasValue && IsSameValue(other.Value);
 
         /// <summary>
         /// Calls base class Equals.
@@ -628,7 +831,7 @@ namespace MigraDoc.DocumentObjectModel
 
                 default:
                     if (!Enum.IsDefined(typeof(UnitType), type))
-                        throw new ArgumentException(DomSR.InvalidUnitType(type.ToString()));
+                        throw new ArgumentException(MdDomMsgs.InvalidUnitType(type.ToString()).Message);
 
                     // Remember missing unit type.
                     Debug.Assert(false, "Missing unit type.");

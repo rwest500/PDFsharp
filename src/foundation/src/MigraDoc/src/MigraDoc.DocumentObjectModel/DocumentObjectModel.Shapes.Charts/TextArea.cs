@@ -167,11 +167,15 @@ namespace MigraDoc.DocumentObjectModel.Shapes.Charts
         public ParagraphFormat Format
         {
             get => Values.Format ??= new(this);
-            set => Values.Format = value;
+            set
+            {
+                SetParent(value);
+                Values.Format = value;
+            }
         }
 
         /// <summary>
-        /// Gets the line format of the area's border.
+        /// Gets the line format of the area’s border.
         /// </summary>
         public LineFormat LineFormat
         {

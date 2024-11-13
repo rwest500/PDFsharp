@@ -1,20 +1,14 @@
 ﻿// PDFsharp - A .NET library for processing PDF
 // See the LICENSE file in the solution root for more information.
 
-//using Fixed = System.Int32;
-//using FWord = System.Int16;
-//using UFWord = System.UInt16;
-
 namespace PdfSharp.Fonts.OpenType
 {
-    // TODO: Create a font driver for reading and writing OpenType font files.
-
     /// <summary>
     /// Base class for all OpenType tables used in PDFsharp.
     /// </summary>
     class OpenTypeFontTable : ICloneable
     {
-        public OpenTypeFontTable(OpenTypeFontface? fontData, string tag)
+        public OpenTypeFontTable(OpenTypeFontFace? fontData, string tag)
         {
             _fontData = fontData;
             if (fontData != null && fontData.TableDictionary.ContainsKey(tag))
@@ -40,9 +34,9 @@ namespace PdfSharp.Fonts.OpenType
         /// <summary>
         /// Gets the font image the table belongs to.
         /// </summary>
-        public OpenTypeFontface? FontData => _fontData;
+        public OpenTypeFontFace? FontData => _fontData;
 
-        internal OpenTypeFontface? _fontData = default!;
+        internal OpenTypeFontFace? _fontData = default!;
 
         public TableDirectoryEntry DirectoryEntry;
 

@@ -39,7 +39,7 @@ namespace PdfSharp.Drawing.BarCodes
                     return new Code3of9Standard(text, size, direction);
 
                 default:
-                    throw new InvalidEnumArgumentException("type", (int)type, typeof(CodeType));
+                    throw new InvalidEnumArgumentException(nameof(type), (int)type, typeof(CodeType));
             }
         }
 
@@ -64,7 +64,7 @@ namespace PdfSharp.Drawing.BarCodes
         /// </summary>
         public static BarCode FromType(CodeType type)
         {
-            return FromType(type, String.Empty, XSize.Empty, CodeDirection.LeftToRight);
+            return FromType(type, "", XSize.Empty, CodeDirection.LeftToRight);
         }
 
         /// <summary>

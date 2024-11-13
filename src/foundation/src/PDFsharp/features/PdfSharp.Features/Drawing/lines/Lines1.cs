@@ -3,7 +3,7 @@
 
 using PdfSharp.Drawing;
 
-#pragma warning disable 1591
+//#pragma warning disable 1591
 namespace PdfSharp.Features.Drawing
 {
     /// <summary>
@@ -12,11 +12,17 @@ namespace PdfSharp.Features.Drawing
     /// <seealso cref="PdfSharp.Quality.Snippet" />
     public class Lines1 : Quality.Snippet
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Lines1"/> class.
+        /// </summary>
         public Lines1()
         {
             Title = "DrawLine";
         }
 
+        /// <summary>
+        /// When implemented in a derived class renders the snippet in the specified XGraphic object.
+        /// </summary>
         public override void RenderSnippet(XGraphics gfx)
         {
             BeginBox(gfx, 1, BoxOptions.Tile);
@@ -57,7 +63,7 @@ namespace PdfSharp.Features.Drawing
                 {
                     // Custom pattern
                     //pen.DashStyle = XDashStyle.Custom;
-                    DashPattern = new[] { 3, 1, 2.5, 1.5 },
+                    DashPattern = [3, 1, 2.5, 1.5],
                     Width = 7,
                     DashOffset = 1
                 };

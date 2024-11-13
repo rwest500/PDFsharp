@@ -1,7 +1,6 @@
 // PDFsharp - A .NET library for processing PDF
 // See the LICENSE file in the solution root for more information.
 
-using System;
 #if GDI
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -20,14 +19,13 @@ namespace PdfSharp.Drawing
     {
         internal XPdfFontOptions() { }
 
-        //DELETE
         /// <summary>
         /// Initializes a new instance of the <see cref="XPdfFontOptions"/> class.
         /// </summary>
-        [Obsolete("Must not specify an embedding option anymore. Fonts get always embedded.")]
         public XPdfFontOptions(PdfFontEncoding encoding, PdfFontEmbedding embedding)
         {
             FontEncoding = encoding;
+            FontEmbedding = embedding;
         }
 
         /// <summary>
@@ -38,26 +36,74 @@ namespace PdfSharp.Drawing
             FontEncoding = encoding;
         }
 
-        //DELETE
         /// <summary>
         /// Initializes a new instance of the <see cref="XPdfFontOptions"/> class.
         /// </summary>
-        [Obsolete("Must not specify an embedding option anymore. Fonts get always embedded.")]
         public XPdfFontOptions(PdfFontEmbedding embedding)
         {
-            FontEncoding = PdfFontEncoding.WinAnsi;
+            FontEmbedding = embedding;
+            FontEncoding = PdfFontEncoding.Automatic;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="XPdfFontOptions"/> class.
+        /// </summary>
+        public XPdfFontOptions(PdfFontEncoding encoding, PdfFontEmbedding embedding, PdfFontColoredGlyphs coloredGlyphs)
+        {
+            FontEncoding = encoding;
+            FontEmbedding = embedding;
+            ColoredGlyphs = coloredGlyphs;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="XPdfFontOptions"/> class.
+        /// </summary>
+        public XPdfFontOptions(PdfFontEmbedding embedding, PdfFontColoredGlyphs coloredGlyphs)
+        {
+            FontEmbedding = embedding;
+            FontEncoding = PdfFontEncoding.Unicode;
+            ColoredGlyphs = coloredGlyphs;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="XPdfFontOptions"/> class.
+        /// </summary>
+        public XPdfFontOptions(PdfFontEncoding encoding, PdfFontColoredGlyphs coloredGlyphs)
+        {
+            FontEmbedding = PdfFontEmbedding.TryComputeSubset;
+            FontEncoding = encoding;
+            ColoredGlyphs = coloredGlyphs;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="XPdfFontOptions"/> class.
+        /// </summary>
+        public XPdfFontOptions(PdfFontColoredGlyphs coloredGlyphs)
+        {
+            FontEmbedding = PdfFontEmbedding.TryComputeSubset;
+            FontEncoding = PdfFontEncoding.Unicode;
+            ColoredGlyphs = coloredGlyphs;
         }
 
         /// <summary>
         /// Gets a value indicating the font embedding.
         /// </summary>
-        [Obsolete("Fonts are always embedded.")]
-        public PdfFontEmbedding FontEmbedding => PdfFontEmbedding.Always;
+        public PdfFontEmbedding FontEmbedding { get; }
 
         /// <summary>
         /// Gets a value indicating how the font is encoded.
         /// </summary>
         public PdfFontEncoding FontEncoding { get; }
+
+        /// <summary>
+        /// Gets a value indicating how the font is encoded.
+        /// </summary>
+        public PdfFontColoredGlyphs ColoredGlyphs { get; }
+
+        /// <summary>
+        /// Gets the default options with WinAnsi encoding and always font embedding.
+        /// </summary>
+        public static XPdfFontOptions AutomaticEncoding => new(PdfFontEncoding.Automatic);
 
         /// <summary>
         /// Gets the default options with WinAnsi encoding and always font embedding.

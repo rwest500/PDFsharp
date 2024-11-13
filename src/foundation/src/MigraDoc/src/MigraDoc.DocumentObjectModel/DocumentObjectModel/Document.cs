@@ -2,6 +2,7 @@
 // See the LICENSE file in the solution root for more information.
 
 using System.Diagnostics.CodeAnalysis;
+using MigraDoc.DocumentObjectModel.Tables;
 using MigraDoc.DocumentObjectModel.Visitors;
 
 namespace MigraDoc.DocumentObjectModel
@@ -18,6 +19,20 @@ namespace MigraDoc.DocumentObjectModel
         {
             BaseValues = new DocumentValues(this);
         }
+
+        /// <summary>
+        /// Gets or sets the user-defined culture used for date formatting and decimal tabstop alignment.
+        /// Note for RTF rendering: Decimal tabstop alignment is done in the viewing application and always depends on the system regional settings,
+        /// as culture or separators cannot be saved in rtf.
+        /// </summary>
+        public CultureInfo? Culture { get; set; }
+
+        /// <summary>
+        /// Gets the actual culture used for date formatting and decimal tabstop alignment.
+        /// Note for RTF rendering: Decimal tabstop alignment is done in the viewing application and always depends on the system regional settings,
+        /// as culture or separators cannot be saved in rtf.
+        /// </summary>
+        public CultureInfo EffectiveCulture => Culture ?? CultureInfo.CurrentCulture;
 
         /// <summary>
         /// Creates a deep copy of this object.
@@ -130,6 +145,27 @@ namespace MigraDoc.DocumentObjectModel
                     return sections[^1];
 
                 return Capabilities.BackwardCompatibility.DoNotCreateLastSection ? null! : AddSection();
+            }
+        }
+
+        /// <summary>
+        /// Returns the last table in the document, or null if no table exists.
+        /// </summary>
+        public Table LastTable
+        {
+            get
+            {
+                var sections = Values.Sections;
+                if (sections is null)
+                    return null!;
+                for (int idx = sections.Count - 1; idx >= 0; --idx)
+                {
+                    var section = sections[idx];
+                    // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+                    if (section.LastTable is not null)
+                        return section.LastTable;
+                }
+                return null!;
             }
         }
 

@@ -64,13 +64,29 @@ namespace MigraDoc.DocumentObjectModel.Tables
                 table.Values.Shading = table.Values.Shading.Clone();
                 table.Values.Shading.Parent = table;
             }
+
+            // Now reset cached values.
+
+            table.ResetCachedValues();
+            for (var rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++)
+            {
+                var row = table.Rows[rowIndex];
+                row.ResetCachedValues();
+                row.Cells.ResetCachedValues();
+                for (var columnIndex = 0; columnIndex < row.Cells.Count; columnIndex++)
+                {
+                    var cell = row.Cells[columnIndex];
+                    cell.ResetCachedValues();
+                }
+            }
+
             return table;
         }
 
         /// <summary>
         /// Adds a new column to the table. Allowed only before any row was added.
         /// </summary>
-        public Column AddColumn() 
+        public Column AddColumn()
             => Columns.AddColumn();
 
         /// <summary>
@@ -86,7 +102,7 @@ namespace MigraDoc.DocumentObjectModel.Tables
         /// <summary>
         /// Adds a new row to the table. Allowed only if at least one column was added.
         /// </summary>
-        public Row AddRow() 
+        public Row AddRow()
             => Rows.AddRow();
 
         /// <summary>
@@ -119,7 +135,7 @@ namespace MigraDoc.DocumentObjectModel.Tables
             for (int r = row; r <= maxRow; r++)
             {
                 var currentRow = Rows[r];
-                for (int c = clm; c <= maxClm; c++) 
+                for (int c = clm; c <= maxClm; c++)
                     currentRow[c].Shading.Color = clr;
             }
         }
@@ -128,7 +144,7 @@ namespace MigraDoc.DocumentObjectModel.Tables
         /// Sets the borders surrounding the specified range of the table.
         /// </summary>
         public void SetEdge(int clm, int row, int clms, int rows,
-          Edge edge, BorderStyle style, Unit width, Color clr)  // TODO: make Color?
+          Edge edge, BorderStyle style, Unit width, Color clr)
         {
             int maxRow = row + rows - 1;
             int maxClm = clm + clms - 1;
@@ -257,7 +273,11 @@ namespace MigraDoc.DocumentObjectModel.Tables
         public ParagraphFormat Format
         {
             get => Values.Format ??= new(this);
-            set => Values.Format = value;
+            set
+            {
+                SetParent(value);
+                Values.Format = value;
+            }
         }
 
         /// <summary>
@@ -302,7 +322,11 @@ namespace MigraDoc.DocumentObjectModel.Tables
         public Borders Borders
         {
             get => Values.Borders ??= new(this);
-            set => Values.Borders = value;
+            set
+            {
+                SetParent(value);
+                Values.Borders = value;
+            }
         }
 
         /// <summary>

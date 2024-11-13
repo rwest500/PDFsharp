@@ -30,7 +30,7 @@ namespace PdfSharp.Fonts.OpenType
             DirectoryEntry.Tag = TableTagNames.Glyf;
         }
 
-        public GlyphDataTable(OpenTypeFontface fontData)
+        public GlyphDataTable(OpenTypeFontFace fontData)
             : base(fontData, Tag)
         {
             DirectoryEntry.Tag = TableTagNames.Glyf;
@@ -85,16 +85,19 @@ namespace PdfSharp.Fonts.OpenType
         }
 
         /// <summary>
-        /// Adds for all composite glyphs the glyphs the composite one is made of.
+        /// Adds for all composite glyphs, the glyphs the composite one is made of.
         /// </summary>
-        public void CompleteGlyphClosure(Dictionary<int, object?> glyphs)
+        public void CompleteGlyphClosure(Dictionary<ushort, object?> glyphs)
         {
             int count = glyphs.Count;
-            int[] glyphArray = new int[glyphs.Count];
+            ushort[] glyphArray = new ushort[glyphs.Count];
             glyphs.Keys.CopyTo(glyphArray, 0);
+            // ReSharper disable once CanSimplifyDictionaryLookupWithTryAdd because of .NET Framework
             if (!glyphs.ContainsKey(0))
                 glyphs.Add(0, null);
-            // Ensure no other threads can alter the Position property of this OpenTypeFontface instance, see https://forum.pdfsharp.net/viewtopic.php?f=2&t=2248#p10378
+            // #NFM
+            // Ensure no other threads can alter the Position property of this OpenTypeFontFace instance,
+            // see https://forum.pdfsharp.net/viewtopic.php?f=2&t=2248#p10378
             try
             {
                 Lock.EnterFontFactory();
@@ -107,7 +110,7 @@ namespace PdfSharp.Fonts.OpenType
         /// <summary>
         /// If the specified glyph is a composite glyph add the glyphs it is made of to the glyph table.
         /// </summary>
-        void AddCompositeGlyphs(Dictionary<int, object?> glyphs, int glyph)
+        void AddCompositeGlyphs(Dictionary<ushort, object?> glyphs, int glyph)
         {
             //int start = fontData.loca.GetOffset(glyph);
             int start = GetOffset(glyph);
@@ -116,14 +119,14 @@ namespace PdfSharp.Fonts.OpenType
                 return;
             _fontData!.Position = start;
             int numContours = _fontData.ReadShort();
-            // Is not a composite glyph?
+            // Isn’t a composite glyph?
             if (numContours >= 0)
                 return;
             _fontData.SeekOffset(8);
             for (; ; )
             {
                 int flags = _fontData.ReadUFWord();
-                int cGlyph = _fontData.ReadUFWord();
+                ushort cGlyph = _fontData.ReadUFWord();
                 if (!glyphs.ContainsKey(cGlyph))
                     glyphs.Add(cGlyph, null);
                 if ((flags & MORE_COMPONENTS) == 0)
@@ -165,7 +168,6 @@ namespace PdfSharp.Fonts.OpenType
         const int WE_HAVE_A_SCALE = 8;
         const int MORE_COMPONENTS = 32;
         const int WE_HAVE_AN_X_AND_Y_SCALE = 64;
-
         const int WE_HAVE_A_TWO_BY_TWO = 128;
         // ReSharper restore InconsistentNaming
     }

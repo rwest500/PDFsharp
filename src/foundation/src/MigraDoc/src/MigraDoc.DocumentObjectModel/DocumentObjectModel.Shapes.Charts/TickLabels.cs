@@ -54,7 +54,7 @@ namespace MigraDoc.DocumentObjectModel.Shapes.Charts
         }
 
         /// <summary>
-        /// Gets or sets the label's number format.
+        /// Gets or sets the label’s number format.
         /// </summary>
         public string Format
         {
@@ -68,7 +68,11 @@ namespace MigraDoc.DocumentObjectModel.Shapes.Charts
         public Font Font
         {
             get => Values.Font ??= new(this);
-            set => Values.Font = value;
+            set
+            {
+                SetParent(value);
+                Values.Font = value;
+            }
         }
 
         /// <summary>

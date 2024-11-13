@@ -1,4 +1,7 @@
-﻿// ReSharper disable once CheckNamespace
+﻿// PDFsharp - A .NET library for processing PDF
+// See the LICENSE file in the solution root for more information.
+
+// ReSharper disable once CheckNamespace
 namespace PdfSharp.BigGustave
 {
     using System.Collections.Generic;
@@ -8,26 +11,26 @@ namespace PdfSharp.BigGustave
         /// <summary>
         /// For a given pass number (1 indexed) the scanline indexes of the lines included in that pass in the 8x8 grid.
         /// </summary>
-        private static readonly IReadOnlyDictionary<int, int[]> PassToScanlineGridIndex = new Dictionary<int, int[]>
+        static readonly IReadOnlyDictionary<int, int[]> PassToScanlineGridIndex = new Dictionary<int, int[]>
         {
-            { 1, new []{ 0 } },
-            { 2, new []{ 0 } },
-            { 3, new []{ 4 } },
-            { 4, new []{ 0, 4 } },
-            { 5, new []{ 2, 6 } },
-            { 6, new[] { 0, 2, 4, 6 } },
-            { 7, new[] { 1, 3, 5, 7 } }
+            { 1, [0] },
+            { 2, [0] },
+            { 3, [4] },
+            { 4, [0, 4] },
+            { 5, [2, 6] },
+            { 6, [0, 2, 4, 6] },
+            { 7, [1, 3, 5, 7] }
         };
 
-        private static readonly IReadOnlyDictionary<int, int[]> PassToScanlineColumnIndex = new Dictionary<int, int[]>
+        static readonly IReadOnlyDictionary<int, int[]> PassToScanlineColumnIndex = new Dictionary<int, int[]>
         {
-            { 1, new []{ 0 } },
-            { 2, new []{ 4 } },
-            { 3, new []{ 0, 4 } },
-            { 4, new []{ 2, 6 } },
-            { 5, new []{ 0, 2, 4, 6 } },
-            { 6, new []{ 1, 3, 5, 7 } },
-            { 7, new []{ 0, 1, 2, 3, 4, 5, 6, 7 } }
+            { 1, [0] },
+            { 2, [4] },
+            { 3, [0, 4] },
+            { 4, [2, 6] },
+            { 5, [0, 2, 4, 6] },
+            { 6, [1, 3, 5, 7] },
+            { 7, [0, 1, 2, 3, 4, 5, 6, 7] }
         };
 
         /*

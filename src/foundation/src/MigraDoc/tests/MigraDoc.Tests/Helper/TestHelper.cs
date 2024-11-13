@@ -1,4 +1,7 @@
-﻿using MigraDoc.DocumentObjectModel;
+﻿// MigraDoc - Creating Documents on the Fly
+// See the LICENSE file in the solution root for more information.
+
+using MigraDoc.DocumentObjectModel;
 
 namespace MigraDoc.Tests.Helper
 {
@@ -11,7 +14,6 @@ namespace MigraDoc.Tests.Helper
             table.LeftPadding = Unit.Zero;
             table.Borders.Left.Width = Unit.FromPoint(1);
             table.Borders.Right.Width = Unit.FromPoint(1);
-
 
             var currentPosition = Unit.Zero;
 

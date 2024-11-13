@@ -9,7 +9,7 @@ namespace PdfSharp.Drawing.BarCodes
     public class CodeOmr : BarCode
     {
         /// <summary>
-        /// initializes a new OmrCode with the given data.
+        /// Initializes a new OmrCode with the given data.
         /// </summary>
         public CodeOmr(string text, XSize size, CodeDirection direction)
             : base(text, size, direction)
@@ -41,14 +41,10 @@ namespace PdfSharp.Drawing.BarCodes
             XPoint pt = position - CodeBase.CalcDistance(AnchorType.TopLeft, Anchor, Size);
             uint value;
             UInt32.TryParse(Text, out value);
-#if true
-            // HACK: Project Wallenwein: set LK
-            value |= 1;
-            _synchronizeCode = true;
-#endif
+
             if (_synchronizeCode)
             {
-                XRect rect = new XRect(pt.X, pt.Y, _makerThickness, Size.Height);
+                var rect = new XRect(pt.X, pt.Y, _makerThickness, Size.Height);
                 gfx.DrawRectangle(brush, rect);
                 pt.X += 2 * _makerDistance;
             }
@@ -56,7 +52,7 @@ namespace PdfSharp.Drawing.BarCodes
             {
                 if ((value & 1) == 1)
                 {
-                    XRect rect = new XRect(pt.X + idx * _makerDistance, pt.Y, _makerThickness, Size.Height);
+                    var rect = new XRect(pt.X + idx * _makerDistance, pt.Y, _makerThickness, Size.Height);
                     gfx.DrawRectangle(brush, rect);
                 }
                 value = value >> 1;
@@ -136,7 +132,7 @@ namespace PdfSharp.Drawing.BarCodes
         //    case MarkDistance.Inch2_8:
         //      return XUnit.FromInch(2.0 / 8.0);
         //    default:
-        //      throw new ArgumentOutOfRangeException("markDistance");
+        //      throw new ArgumentOutOfRangeException(nameof(markDistance));
         //  }
         //}
 

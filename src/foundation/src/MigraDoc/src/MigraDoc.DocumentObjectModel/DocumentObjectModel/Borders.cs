@@ -33,7 +33,7 @@ namespace MigraDoc.DocumentObjectModel
         public bool HasBorder(BorderType type)
         {
             if (!Enum.IsDefined(typeof(BorderType), type))
-                throw new /*InvalidEnum*/ArgumentException(DomSR.InvalidEnumValue(type), "type");
+                throw new /*InvalidEnum*/ArgumentException(MdDomMsgs.InvalidEnumValue(type).Message, nameof(type));
 
             return GetBorder(type) is not null;
         }
@@ -56,7 +56,7 @@ namespace MigraDoc.DocumentObjectModel
                 case BorderType.Horizontal: // Not used in MigraDoc 1.2.
                 case BorderType.Vertical:   // Not used in MigraDoc 1.2.
 #pragma warning restore CS0618
-                    return null; /*(Border?)GetValue(type.ToString(), GV.GetNull);*/ // BUG: why??? -> return null
+                    return null;
                 case BorderType.Left:
                     return Values.Left;
                 case BorderType.Right:
@@ -66,7 +66,7 @@ namespace MigraDoc.DocumentObjectModel
             }
 
             if (!Enum.IsDefined(typeof(BorderType), type))
-                throw new InvalidEnumArgumentException(DomSR.InvalidEnumValue(type));
+                throw new InvalidEnumArgumentException(MdDomMsgs.InvalidEnumValue(type).Message);
             return null;
         }
 
@@ -391,7 +391,7 @@ namespace MigraDoc.DocumentObjectModel
 
             //if (!IsNull("DiagonalDown"))
             if (!Values.DiagonalDown.IsValueNullOrEmpty())
-                Values.DiagonalUp!.Serialize(serializer, "DiagonalDown", null);
+                Values.DiagonalDown!.Serialize(serializer, "DiagonalDown", null);
 
             //if (!IsNull("DiagonalUp"))
             if (!Values.DiagonalUp.IsValueNullOrEmpty())
@@ -420,58 +420,59 @@ namespace MigraDoc.DocumentObjectModel
             return null;
         }
 
-//        /// <summary>
-//        /// Returns an enumerator that can iterate through the Borders.
-//        /// </summary>
-//        public class BorderEnumerator : IEnumerator<Border>
-//        {
-//#warning This class must be checked with a unit test.
-//            /// <summary>
-//            /// Creates a new BorderEnumerator.
-//            /// </summary>
-//            public BorderEnumerator(Dictionary<string, Border?> ht)
-//            {
-//                _ht = ht;
-//                _index = -1;
-//            }
+        //        /// <summary>
+        //        /// Returns an enumerator that can iterate through the Borders.
+        //        /// </summary>
+        //        public class BorderEnumerator : IEnumerator<Border>
+        //        {
+        //#war/ning This class must be checked with a unit test.
+        //            /// <summary>
+        //            /// Creates a new BorderEnumerator.
+        //            /// </summary>
+        //            public BorderEnumerator(Dictionary<string, Border?> ht)
+        //            {
+        //                _ht = ht;
+        //                _index = -1;
+        //            }
 
-//            public void Dispose()
-//                => throw new NotImplementedException();
+        //            public void Dispose()
+        //                => throw new NotImplementedException();
 
-//            /// <summary>
-//            /// Sets the enumerator to its initial position, which is before the first element in the border collection.
-//            /// </summary>
-//            public void Reset() => _index = -1;
+        //            /// <summary>
+        //            /// Sets the enumerator to its initial position, which is before the first element in the border collection.
+        //            /// </summary>
+        //            public void Reset() => _index = -1;
 
-//            object IEnumerator.Current => Current;
+        //            object IEnumerator.Current => Current;
 
-//            /// <summary>
-//            /// Gets the current element in the border collection.
-//            /// </summary>
-//            public Border Current
-//            {
-//                get
-//                {
-//                    IEnumerator enumerator = _ht.GetEnumerator();
-//                    enumerator.Reset();
-//                    for (int idx = 0; idx < _index + 1; idx++)
-//                        enumerator.MoveNext();
-//                    return (((DictionaryEntry)enumerator.Current).Value as Border)!; // BUG: May return null
-//                }
-//            }
+        //            /// <summary>
+        //            /// Gets the current element in the border collection.
+        //            /// </summary>
+        //            public Border Current
+        //            {
+        //                get
+        //                {
+        //                    IEnumerator enumerator = _ht.GetEnumerator();
+        //                    enumerator.Reset();
+        //                    for (int idx = 0; idx < _index + 1; idx++)
+        //                        enumerator.MoveNext();
+        //                    // return (((DictionaryEntry)enumerator.Current).Value as Border)!; // B_UG: May return null
+        //                    return (((KeyValuePair<string, Border>)enumerator.Current).Value as Border)!;
+        //                }
+        //            }
 
-//            /// <summary>
-//            /// Advances the enumerator to the next element of the border collection.
-//            /// </summary>
-//            public bool MoveNext()
-//            {
-//                _index++;
-//                return (_index < _ht.Count);
-//            }
+        //            /// <summary>
+        //            /// Advances the enumerator to the next element of the border collection.
+        //            /// </summary>
+        //            public bool MoveNext()
+        //            {
+        //                _index++;
+        //                return (_index < _ht.Count);
+        //            }
 
-//            int _index;
-//            readonly Dictionary<string, Border?> _ht;
-//        }
+        //            int _index;
+        //            readonly Dictionary<string, Border?> _ht;
+        //        }
 
         /// <summary>
         /// Returns the meta object of this instance.

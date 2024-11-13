@@ -1,8 +1,8 @@
-// PDFsharp - A .NET library for processing PDF
+Ôªø// PDFsharp - A .NET library for processing PDF
 // See the LICENSE file in the solution root for more information.
 
-using System.Globalization;
-
+using Microsoft.Extensions.Logging;
+using PdfSharp.Logging;
 #if GDI
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -116,6 +116,13 @@ namespace PdfSharp.Pdf.Advanced
         {
             set
             {
+                // #PDF-A
+                // ReSharper disable once CompareOfFloatsByEqualityOperator
+                if (_document.IsPdfA && value != 1.0)
+                {
+                    PdfSharpLogHost.Logger.LogWarning("PDF/A: Stroke alpha value set to 1.");
+                    value = 1.0;
+                }
                 _strokeAlpha = value;
                 Elements.SetReal(Keys.CA, value);
                 UpdateKey();
@@ -125,12 +132,19 @@ namespace PdfSharp.Pdf.Advanced
         double _strokeAlpha;
 
         /// <summary>
-        /// Sets the alpha value for nonstroking operations.
+        /// Sets the alpha value for non-stroking operations.
         /// </summary>
         public double NonStrokeAlpha
         {
             set
             {
+                // #PDF-A
+                // ReSharper disable once CompareOfFloatsByEqualityOperator
+                if (_document.IsPdfA && value != 1.0)
+                {
+                    PdfSharpLogHost.Logger.LogWarning("PDF/A: Non-stroke alpha value set to 1.");
+                    value = 1.0;
+                }
                 _nonStrokeAlpha = value;
                 Elements.SetReal(Keys.ca, value);
                 UpdateKey();
@@ -155,7 +169,7 @@ namespace PdfSharp.Pdf.Advanced
         bool _strokeOverprint;
 
         /// <summary>
-        /// Sets the overprint value for nonstroking operations.
+        /// Sets the overprint value for non-stroking operations.
         /// </summary>
         public bool NonStrokeOverprint
         {
@@ -209,7 +223,7 @@ namespace PdfSharp.Pdf.Advanced
             public const string Type = "/Type";
 
             /// <summary>
-            /// (Optional; PDF 1.3) The line width (see ìLine Widthî on page 185).
+            /// (Optional; PDF 1.3) The line width (see ‚ÄúLine Width‚Äù on page 185).
             /// </summary>
             [KeyInfo(KeyType.Real | KeyType.Optional)]
             public const string LW = "/LW";
@@ -344,13 +358,13 @@ namespace PdfSharp.Pdf.Advanced
             public const string CA = "/CA";
 
             /// <summary>
-            /// (Optional; PDF 1.4) Same as CA, but for nonstroking operations.
+            /// (Optional; PDF 1.4) Same as CA, but for non-stroking operations.
             /// </summary>
             [KeyInfo(KeyType.Real | KeyType.Optional)]
             public const string ca = "/ca";
 
             /// <summary>
-            /// (Optional; PDF 1.4) The alpha source flag (ìalpha is shapeî), specifying whether 
+            /// (Optional; PDF 1.4) The alpha source flag (‚Äúalpha is shape‚Äù), specifying whether 
             /// the current soft mask and alpha constant are to be interpreted as shape values (true)
             /// or opacity values (false).
             /// </summary>

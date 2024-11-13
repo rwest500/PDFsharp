@@ -15,7 +15,7 @@ using WpfFontFamily = System.Windows.Media.FontFamily;
 using WpfTypeface = System.Windows.Media.Typeface;
 using WpfGlyphTypeface = System.Windows.Media.GlyphTypeface;
 #endif
-#if UWP
+#if WUI
 using UwpFontFamily = Windows.UI.Xaml.Media.FontFamily;
 #endif
 using PdfSharp.Fonts;
@@ -23,6 +23,7 @@ using PdfSharp.Fonts.Internal;
 using PdfSharp.Fonts.OpenType;
 using PdfSharp.Internal;
 using PdfSharp.Pdf;
+using PdfSharp.Pdf.Advanced;
 
 // ReSharper disable ConvertToAutoProperty
 
@@ -118,6 +119,26 @@ namespace PdfSharp.Drawing
             throw new NotImplementedException(nameof(XFont));
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="XFont"/> class.
+        /// Not yet implemented.
+        /// </summary>
+        /// <param name="glyphTypeface">The typeface.</param>
+        /// <param name="emSize">The em size.</param>
+        /// <param name="pdfOptions">The PDF options.</param>
+        /// <param name="styleSimulations">The style simulations.</param>
+        public XFont(XGlyphTypeface glyphTypeface, double emSize, XPdfFontOptions? pdfOptions = null, XStyleSimulations? styleSimulations = null)
+        {
+            GlyphTypeface = glyphTypeface;
+            _familyName = glyphTypeface.FamilyName;
+            _emSize = emSize;
+            _style = (glyphTypeface.IsBold ? XFontStyleEx.Bold : XFontStyleEx.Regular) |
+                     (glyphTypeface.IsItalic ? XFontStyleEx.Italic : XFontStyleEx.Regular);
+            _pdfOptions = pdfOptions ?? new XPdfFontOptions(GlobalFontSettings.DefaultFontEncoding);
+            OverrideStyleSimulations = styleSimulations != null && styleSimulations != XStyleSimulations.None;
+            StyleSimulations = styleSimulations ?? XStyleSimulations.None;
+            Initialize();
+        }
 #if GDI
         /// <summary>
         /// Initializes a new instance of the <see cref="XFont"/> class from a System.Drawing.FontFamily.
@@ -297,7 +318,7 @@ namespace PdfSharp.Drawing
         ////public Font(FontFamily family, float emSize, FontStyle style, GraphicsUnit unit, byte gdiCharSet, bool gdiVerticalFont);
         ////public Font(string familyName, float emSize, FontStyle style, GraphicsUnit unit, byte gdiCharSet, bool gdiVerticalFont);
         //public object Clone();
-        //private static FontFamily CreateFontFamilyWithFallback(string familyName);
+        //static FontFamily CreateFontFamilyWithFallback(string familyName);
         //private void Dispose(bool disposing);
         //public override bool Equals(object? obj);
         //protected override void Finalize();
@@ -308,35 +329,33 @@ namespace PdfSharp.Drawing
         //public override int GetHashCode();
 
         /// <summary>
-        /// Initializes this instance by computing the glyph typeface, font family, font source and TrueType fontface.
+        /// Initializes this instance by computing the glyph typeface, font family, font source and TrueType font face.
         /// (PDFsharp currently only deals with TrueType fonts.)
         /// </summary>
         void Initialize()
         {
-            //#if DEBUG
-            //            if (_familyName == "Segoe UI Semilight" && (_style & XFontStyleEx.BoldItalic) == XFontStyleEx.Italic)
-            //                GetType();
-            //#endif
-
+#if DEBUG_
+            if (_familyName == "Segoe UI Semilight" && (_style & XFontStyleEx.BoldItalic) == XFontStyleEx.Italic)
+                _ = typeof(int);
+#endif
             FontResolvingOptions fontResolvingOptions = OverrideStyleSimulations
                 ? new FontResolvingOptions(_style, StyleSimulations)
                 : new FontResolvingOptions(_style);
 
-            // Pseudo-font 'PlatformDefault' is used in unit test code.
-            if (StringComparer.OrdinalIgnoreCase.Compare(_familyName, GlobalFontSettings.DefaultFontName) == 0)
+            if (GlyphTypeface == null!)
             {
-#if CORE || GDI || WPF
-                _familyName = "Calibri";
-#else
-#warning Unsupported platform.
-#endif
-            }
+                // In principle an XFont is an XGlyphTypeface plus an em-size.
+                GlyphTypeface = XGlyphTypeface.GetOrCreateFrom(_familyName, fontResolvingOptions);
 
-            // In principle an XFont is an XGlyphTypeface plus an em-size.
-            GlyphTypeface = XGlyphTypeface.GetOrCreateFrom(_familyName, fontResolvingOptions);
+                GlyphTypeface.FontFace.SetFontEmbedding(_pdfOptions.FontEmbedding);
+            }
 #if GDI
             // Create font by using font family.
-            GdiFont = FontHelper.CreateFont(_familyName, (float)_emSize, (GdiFontStyle)(_style & XFontStyleEx.BoldItalic), out _);
+            var gdiFont = FontHelper.CreateFont(_familyName, (float)_emSize, (GdiFontStyle)(_style & XFontStyleEx.BoldItalic), out _);
+            // Should not fail because GDI font is created by other GDI font.   
+            // No, fails if CFR creates the font.
+            //Debug.Assert(gdiFont!=null);
+            GdiFont = gdiFont!;
 #endif
 #if WPF
             WpfFontFamily = GlyphTypeface.FontFamily.WpfFamily;
@@ -421,10 +440,10 @@ namespace PdfSharp.Drawing
         void CreateDescriptorAndInitializeFontMetrics()  // TODO: refactor
         {
             Debug.Assert(_fontMetrics == null, "InitializeFontMetrics() was already called.");
-            Descriptor = (OpenTypeDescriptor)FontDescriptorCache.GetOrCreateDescriptorFor(this); //_familyName, _style, _glyphTypeface.Fontface);
-            _fontMetrics = new XFontMetrics(Descriptor.FontName, Descriptor.UnitsPerEm, Descriptor.Ascender, Descriptor.Descender,
-                Descriptor.Leading, Descriptor.LineSpacing, Descriptor.CapHeight, Descriptor.XHeight, Descriptor.StemV, 0, 0, 0,
-                Descriptor.UnderlinePosition, Descriptor.UnderlineThickness, Descriptor.StrikeoutPosition, Descriptor.StrikeoutSize);
+            OpenTypeDescriptor = (OpenTypeDescriptor)FontDescriptorCache.GetOrCreateDescriptorFor(this); //_familyName, _style, _glyphTypeface.FontFace);
+            _fontMetrics = new XFontMetrics(OpenTypeDescriptor.FontName2, OpenTypeDescriptor.UnitsPerEm, OpenTypeDescriptor.Ascender, OpenTypeDescriptor.Descender,
+                OpenTypeDescriptor.Leading, OpenTypeDescriptor.LineSpacing, OpenTypeDescriptor.CapHeight, OpenTypeDescriptor.XHeight, OpenTypeDescriptor.StemV, 0, 0, 0,
+                OpenTypeDescriptor.UnderlinePosition, OpenTypeDescriptor.UnderlineThickness, OpenTypeDescriptor.StrikeoutPosition, OpenTypeDescriptor.StrikeoutSize);
 
             XFontMetrics fm = Metrics;
 
@@ -432,10 +451,10 @@ namespace PdfSharp.Drawing
             //if (_descriptor == null)
             //    _descriptor = (OpenTypeDescriptor)FontDescriptorStock.Global.CreateDescriptor(this);  //(Name, (XGdiFontStyle)Font.Style);
 
-            UnitsPerEm = Descriptor.UnitsPerEm;
-            CellAscent = Descriptor.Ascender;
-            CellDescent = Descriptor.Descender;
-            CellSpace = Descriptor.LineSpacing;
+            UnitsPerEm = OpenTypeDescriptor.UnitsPerEm;
+            CellAscent = OpenTypeDescriptor.Ascender;
+            CellDescent = OpenTypeDescriptor.Descender;
+            CellSpace = OpenTypeDescriptor.LineSpacing;
 
 #if DEBUG_ && GDI
             int gdiValueUnitsPerEm = Font.FontFamily.GetEmHeight(Font.Style);
@@ -451,13 +470,10 @@ namespace PdfSharp.Drawing
             int wpfValueLineSpacing = (int)Math.Round(Family.LineSpacing * _descriptor.UnitsPerEm);
             Debug.Assert(wpfValueLineSpacing == CellSpace);
 #endif
-            Debug.Assert(fm.UnitsPerEm == Descriptor.UnitsPerEm);
+            Debug.Assert(fm.UnitsPerEm == OpenTypeDescriptor.UnitsPerEm);
         }
 
-
-
         ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
         /// <summary>
         /// Gets the XFontFamily object associated with this XFont object.
@@ -465,7 +481,7 @@ namespace PdfSharp.Drawing
         [Browsable(false)]
         public XFontFamily FontFamily => GlyphTypeface.FontFamily;
 
-        // TODO
+        // TODO XFont.Name
         /// <summary>
         /// WRONG: Gets the face name of this Font object.
         /// Indeed, it returns the font family name.
@@ -510,8 +526,9 @@ namespace PdfSharp.Drawing
         /// </summary>
         public bool Underline => (_style & XFontStyleEx.Underline) == XFontStyleEx.Underline;
 
+#if true_ // #DELETE
         /// <summary>
-        /// Temporary HACK for XPS to PDF converter.
+        /// Temporary H/ACK for XPS to PDF converter.
         /// </summary>
         internal bool IsVertical
         {
@@ -519,7 +536,12 @@ namespace PdfSharp.Drawing
             set => _isVertical = value;
         }
         bool _isVertical;
+#endif
 
+        /// <summary>
+        /// Indicates whether this XFont object is a symbol font.
+        /// </summary>
+        public bool IsSymbolFont => OpenTypeDescriptor.IsSymbolFont;
 
         /// <summary>
         /// Gets the PDF options of the font.
@@ -530,9 +552,25 @@ namespace PdfSharp.Drawing
 
         /// <summary>
         /// Indicates whether this XFont is encoded as Unicode.
+        /// Gets a value indicating whether text drawn with this font uses Unicode / CID encoding in the PDF document.
         /// </summary>
         //internal bool Unicode => _pdfOptions != null && _pdfOptions.FontEncoding == PdfFontEncoding.Unicode;
-        internal bool Unicode => _pdfOptions is { FontEncoding: PdfFontEncoding.Unicode };
+        internal bool UnicodeEncoding => _pdfOptions is { FontEncoding: PdfFontEncoding.Unicode };
+
+        /// <summary>
+        /// Gets a value indicating whether text drawn with this font uses ANSI encoding in the PDF document.
+        /// </summary>
+        internal bool AnsiEncoding => _pdfOptions is { FontEncoding: PdfFontEncoding.WinAnsi };
+
+        /// <summary>
+        /// Gets a value indicating whether the font encoding is determined from the characters used in the text.
+        /// </summary>
+        internal bool AutoEncoding => _pdfOptions is { FontEncoding: PdfFontEncoding.Automatic };
+
+        internal FontType FontTypeFromUnicodeFlag =>
+            UnicodeEncoding ? FontType.Type0Unicode
+            : AnsiEncoding ? FontType.TrueTypeWinAnsi
+            : throw new InvalidOperationException("Font type must be Unicode or WinAnsi encoding.");
 
         /// <summary>
         /// Gets the cell space for the font. The CellSpace is the line spacing, the sum of CellAscent and CellDescent and optionally some extra space.
@@ -547,22 +585,12 @@ namespace PdfSharp.Drawing
         /// <summary>
         /// Gets the cell ascent, the area above the base line that is used by the font.
         /// </summary>
-        public int CellAscent
-        {
-            get => _cellAscent;
-            internal set => _cellAscent = value;
-        }
-        int _cellAscent;
+        public int CellAscent { get; internal set; }
 
         /// <summary>
         /// Gets the cell descent, the area below the base line that is used by the font.
         /// </summary>
-        public int CellDescent
-        {
-            get => _cellDescent;
-            internal set => _cellDescent = value;
-        }
-        int _cellDescent;
+        public int CellDescent { get; internal set; }
 
         /// <summary>
         /// Gets the font metrics.
@@ -594,7 +622,7 @@ namespace PdfSharp.Drawing
         public double GetHeight()
         {
             double value = CellSpace * _emSize / UnitsPerEm;
-#if CORE || UWP
+#if CORE || WUI
             return value;
 #endif
 #if GDI && !WPF
@@ -623,7 +651,7 @@ namespace PdfSharp.Drawing
 #if true
             throw new InvalidOperationException("Honestly: Use GetHeight() without parameter!");
 #else
-#if CORE || UWP
+#if CORE || WUI
             double value = CellSpace * _emSize / UnitsPerEm;
             return value;
 #endif
@@ -680,9 +708,7 @@ namespace PdfSharp.Drawing
 
         internal XGlyphTypeface GlyphTypeface { get; private set; } = default!;
 
-
-        internal OpenTypeDescriptor Descriptor { get; private set; } = default!;
-
+        internal OpenTypeDescriptor OpenTypeDescriptor { get; private set; } = default!;
 
         internal string FamilyName => _familyName;
 
@@ -738,12 +764,13 @@ namespace PdfSharp.Drawing
 
         ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
         /// <summary>
         /// Cache PdfFontTable.FontSelector to speed up finding the right PdfFont
         /// if this font is used more than once.
         /// </summary>
-        internal string? Selector { get; set; }
+        internal string? PdfFontSelector { get; set; }
+
+        internal void CheckVersion() => GlyphTypeface.CheckVersion();
 
         /// <summary>
         /// Gets the DebuggerDisplayAttribute text.
@@ -751,6 +778,11 @@ namespace PdfSharp.Drawing
         // ReSharper disable UnusedMember.Local
         string DebuggerDisplay
         // ReSharper restore UnusedMember.Local
-            => Invariant($"font=('{Name}' {Size:0.##}");
+        {
+            get
+            {
+                return Invariant($"font=('{Name}' {Size:0.##}{(Bold ? " bold" : "")}{(Italic ? " italic" : "")} {GlyphTypeface.StyleSimulations})");
+            }
+        }
     }
 }

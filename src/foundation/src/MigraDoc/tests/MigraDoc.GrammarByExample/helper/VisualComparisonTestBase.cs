@@ -2,6 +2,7 @@
 // See the LICENSE file in the solution root for more information.
 
 using System.Diagnostics;
+using System.IO;
 using System.Text;
 using MigraDoc.DocumentObjectModel;
 using MigraDoc.DocumentObjectModel.IO;
@@ -10,6 +11,7 @@ using MigraDoc.Rendering;
 using PdfSharp;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf;
+using PdfSharp.Pdf.Internal;
 using PdfSharp.Pdf.IO;
 
 namespace GdiGrammarByExample
@@ -66,6 +68,28 @@ namespace GdiGrammarByExample
 
             var document = DdlReaderDocumentFromFile(file);
 
+#if NET6_0_OR_GREATER
+#if CORE
+            document.Info.Author += "[.NET 6.0+ Core build]";
+#elif GDI
+            document.Info.Author += "[.NET 6.0+ GDI build]";
+#elif WPF
+            document.Info.Author += "[.NET 6.0+ WPF build]";
+#else
+            document.Info.Author += "[.NET 6.0+ ??? build]";
+#endif
+#else
+#if CORE
+            document.Info.Author += "[.NET 4.6.2+ Core build]";
+#elif GDI
+            document.Info.Author += "[.NET 4.6.2+ GDI build]";
+#elif WPF
+            document.Info.Author += "[.NET 4.6.2+ WPF build]";
+#else
+            document.Info.Author += "[.NET 4.6.2+ ??? build]";
+#endif
+#endif
+
             return CreatePdfFromDocument(pdfFile, document, testName, mdddlPath, callback);
         }
 
@@ -78,17 +102,22 @@ namespace GdiGrammarByExample
 
         Document DdlReaderDocumentFromFile(string file)
         {
+            //#if NET6_0_OR_GREATER
+            //            var ansiEncoding = CodePagesEncodingProvider.Instance.GetEncoding(1252)!;
+            //#else
+            //            var ansiEncoding = Encoding.GetEncoding(1252);
+            //#endif
+            var ansiEncoding = PdfEncoders.WinAnsiEncoding;
+
             //Console.WriteLine($"DdlReaderDocumentFromFile(string {file})");
             Document document;
             DdlReader? reader = null;
             try
             {
                 // The Grammar By Example files still have ANSI encoding.
-                using (var streamReader = new StreamReader(DdlGbeTestBase.WslPathHack(file), Encoding.GetEncoding(1252)))
-                {
-                    reader = new DdlReader(streamReader); //, _errorManager);
-                    document = reader.ReadDocument();
-                }
+                using var streamReader = new StreamReader(DdlGbeTestBase.WslPathHack(file), ansiEncoding);
+                reader = new DdlReader(streamReader); //, _errorManager);
+                document = reader.ReadDocument();
             }
             finally
             {
@@ -173,7 +202,6 @@ namespace GdiGrammarByExample
                 AddDocument(pdfResultDocument, PdfReader.Open(DdlGbeTestBase.WslPathHack(pdfFile), PdfDocumentOpenMode.Import), testName, font, format);
                 pdfResultDocument.Save(DdlGbeTestBase.WslPathHack(resultFileName));
 
-
                 // Open output file for references.
                 var originalFileName = testContext.AddResultFileEx("!!TestResult_References.pdf");
                 var pdfOriginalDocument = CreateOrOpenResultFile(DdlGbeTestBase.WslPathHack(originalFileName));
@@ -192,35 +220,35 @@ namespace GdiGrammarByExample
                 string resultFileNameSideBySide = testContext.AddResultFileEx("!!TestResult_side_by_side.pdf");
                 var pdfResultDocumentSideBySide = CreateOrOpenResultFile(resultFileNameSideBySide);
 
-                for (int i = 0; i < total; ++i)
+                for (int idx = 0; idx < total; idx++)
                 {
-                    bool landscape = ((1 << i) & bitmapLandscape) != 0;
+                    bool landscape = ((1 << idx) & bitmapLandscape) != 0;
                     var page = pdfResultDocumentSideBySide.AddPage();
                     page.Orientation = landscape ? PageOrientation.Portrait : PageOrientation.Landscape;
                     var gfx = XGraphics.FromPdfPage(page);
 
-                    double width = page.Width;
-                    double height = page.Height;
+                    double width = page.Width.Point;
+                    double height = page.Height.Point;
                     if (landscape)
                     {
                         // Landscape.
                         var box = new XRect(0, 0, width, height / 2);
 
                         // Copy page.
-                        CopyPdfPage(inputDocument1, gfx, i + 1, box);
+                        CopyPdfPage(inputDocument1, gfx, idx + 1, box);
 
                         // Write document file name and page number on each page.
                         box.Inflate(0, -10);
-                        gfx.DrawString(FormattableString.Invariant($"- {testName} - {i + 1} of {pages1} -"),
+                        gfx.DrawString(FormattableString.Invariant($"- {testName} - {idx + 1} of {pages1} -"),
                                        font, XBrushes.Red, box, format);
 
                         box = new XRect(0, height / 2, width, height / 2);
                         // Copy page.
-                        CopyPdfPage(inputDocument2, gfx, i + 1, box);
+                        CopyPdfPage(inputDocument2, gfx, idx + 1, box);
 
                         // Write document file name and page number on each page.
                         box.Inflate(0, -10);
-                        gfx.DrawString(FormattableString.Invariant($"- {i + 1} of {pages2} -"),
+                        gfx.DrawString(FormattableString.Invariant($"- {idx + 1} of {pages2} -"),
                                        font, XBrushes.Red, box, format);
                     }
                     else
@@ -229,21 +257,21 @@ namespace GdiGrammarByExample
                         var box = new XRect(0, 0, width / 2, height);
 
                         // Copy page.
-                        CopyPdfPage(inputDocument1, gfx, i + 1, box);
+                        CopyPdfPage(inputDocument1, gfx, idx + 1, box);
 
                         // Write document file name and page number on each page.
                         box.Inflate(0, -10);
-                        gfx.DrawString(FormattableString.Invariant($"- {testName} - {i + 1} of {pages1} -"),
+                        gfx.DrawString(FormattableString.Invariant($"- {testName} - {idx + 1} of {pages1} -"),
                                        font, XBrushes.Red, box, format);
 
                         box = new XRect(width / 2, 0, width / 2, height);
 
                         // Copy page.
-                        CopyPdfPage(inputDocument2, gfx, i + 1, box);
+                        CopyPdfPage(inputDocument2, gfx, idx + 1, box);
 
                         // Write document file name and page number on each page.
                         box.Inflate(0, -10);
-                        gfx.DrawString(FormattableString.Invariant($"- {i + 1} of {pages2} -"),
+                        gfx.DrawString(FormattableString.Invariant($"- {idx + 1} of {pages2} -"),
                                        font, XBrushes.Red, box, format);
                     }
                 }
@@ -265,7 +293,7 @@ namespace GdiGrammarByExample
             {
                 var page = resultPdf.Pages[i];
                 var gfx = XGraphics.FromPdfPage(page);
-                var box = new XRect(0, 0, page.Width, page.Height);
+                var box = new XRect(0, 0, page.Width.Point, page.Height.Point);
 
                 // Write document file name and page number on each page.
                 box.Inflate(0, -10);

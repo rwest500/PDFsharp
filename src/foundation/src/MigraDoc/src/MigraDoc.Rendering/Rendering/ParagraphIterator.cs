@@ -83,7 +83,6 @@ namespace MigraDoc.Rendering
             return SeekLastLeaf();
         }
 
-
         /// <summary>
         /// Gets the first leaf of the element tree.
         /// </summary>
@@ -99,7 +98,7 @@ namespace MigraDoc.Rendering
         /// Returns the next iterator in the tree pointing to a leaf.
         /// </summary>
         /// <remarks>This function is intended to receive the renderable objects of a paragraph.
-        /// Thus, empty ParagraphElement objects (which are collections) don't count as leafs.</remarks>
+        /// Thus, empty ParagraphElement objects (which are collections) don’t count as leafs.</remarks>
         internal ParagraphIterator? GetNextLeaf()
         {
             // Move up to appropriate parent element.
@@ -174,7 +173,8 @@ namespace MigraDoc.Rendering
             if (newIndex < 0)
                 return null;
 
-            List<int> indices = new(parIterator._positionIndices) { newIndex };//(Array_List)parIterator.positionIndices.Clone();
+            //List<int> indices = new(parIterator._positionIndices) { newIndex };
+            List<int> indices = [..parIterator._positionIndices, newIndex];
 
             var obj = GetNodeObject(parEls[newIndex] ?? NRT.ThrowOnNull<DocumentObject>());
             var iterator = new ParagraphIterator(_rootNode, obj, indices);

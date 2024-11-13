@@ -1,11 +1,12 @@
-// MigraDoc - Creating Documents on the Fly
+﻿// MigraDoc - Creating Documents on the Fly
 // See the LICENSE file in the solution root for more information.
 
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using MigraDoc.DocumentObjectModel;
 using MigraDoc.DocumentObjectModel.Shapes;
 using MigraDoc.DocumentObjectModel.Tables;
-using MigraDoc.RtfRendering.Resources;
+using MigraDoc.Logging;
 
 namespace MigraDoc.RtfRendering
 {
@@ -48,8 +49,12 @@ namespace MigraDoc.RtfRendering
             {
                 TextOrientation orient = _textFrame.Orientation;
                 if (orient != TextOrientation.Horizontal && orient != TextOrientation.HorizontalRotatedFarEast)
-                    Debug.WriteLine(Messages2.TextframeContentsNotTurned, "warning");
+                {
+                    MigraDocLogHost.RtfRenderingLogger.LogWarning(MdRtfMsgs.TextFrameContentsNotTurned.Message);
+                    //Debug.WriteLine(Messages2.TextframeContentsNotTurned, "warning");
+                }
             }
+
             _rtfWriter.StartContent();
             _rtfWriter.WriteControl("shptxt");
             _rtfWriter.StartContent();
@@ -75,7 +80,6 @@ namespace MigraDoc.RtfRendering
             }
         }
 
-
         /// <summary>
         /// Gets the user defined shape height if given, else 1 inch.
         /// </summary>
@@ -86,7 +90,6 @@ namespace MigraDoc.RtfRendering
 
             return base.GetShapeHeight();
         }
-
 
         /// <summary>
         /// Gets the user defined shape width if given, else 1 inch.
@@ -123,7 +126,7 @@ namespace MigraDoc.RtfRendering
             RenderUnit("picwgoal", GetShapeWidth());
             _rtfWriter.WriteControl("wmetafile", 8);
 
-            //It's also not clear why this is needed:
+            //It’s also not clear why this is needed:
             _rtfWriter.WriteControl("blipupi", 600);
             _rtfWriter.EndContent();
         }

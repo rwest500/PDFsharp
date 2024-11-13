@@ -9,7 +9,7 @@ using System.Drawing.Drawing2D;
 using System.Windows;
 using System.Windows.Media;
 #endif
-#if UWP
+#if WUI
 using Windows.UI.Xaml.Media;
 #endif
 
@@ -34,17 +34,17 @@ namespace PdfSharp.Drawing
         /// </summary>
         public GraphicsPath GdiPath
         {
-            get { return _path._gdipPath; }
+            get { return _path.GdipPath; }
         }
 #endif
 
-#if WPF || UWP
+#if WPF || WUI
         /// <summary>
         /// Gets the underlying WPF path geometry object.
         /// </summary>
         public PathGeometry WpfPath
         {
-            get { return _path._pathGeometry; }
+            get { return _path.PathGeometry; }
         }
 #endif
     }

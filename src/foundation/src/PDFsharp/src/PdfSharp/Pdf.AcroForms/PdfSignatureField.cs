@@ -1,5 +1,9 @@
-// PDFsharp - A .NET library for processing PDF
+﻿// PDFsharp - A .NET library for processing PDF
 // See the LICENSE file in the solution root for more information.
+
+using PdfSharp.Pdf.IO;
+using PdfSharp.Drawing;
+using PdfSharp.Pdf.Annotations;
 
 namespace PdfSharp.Pdf.AcroForms
 {
@@ -13,11 +17,81 @@ namespace PdfSharp.Pdf.AcroForms
         /// </summary>
         internal PdfSignatureField(PdfDocument document)
             : base(document)
-        { }
+        {
+            CustomAppearanceHandler = null!;
+        }
 
         internal PdfSignatureField(PdfDictionary dict)
             : base(dict)
-        { }
+        {
+            CustomAppearanceHandler = null!;
+        }
+
+        /// <summary>
+        /// Handler that creates the visual representation of the digital signature in PDF.
+        /// </summary>
+        public IAnnotationAppearanceHandler CustomAppearanceHandler { get; internal set; }
+
+        /// <summary>
+        /// Creates the custom appearance form X object for the annotation that represents
+        /// this acro form text field.
+        /// </summary>
+        void RenderCustomAppearance()
+        {
+            PdfRectangle rect = Elements.GetRectangle(PdfAnnotation.Keys.Rect);
+
+            var visible = rect.X1 + rect.X2 + rect.Y1 + rect.Y2 != 0;
+
+            if (!visible)
+                return;
+
+            if (CustomAppearanceHandler == null)
+                throw new Exception("AppearanceHandler is null");
+
+            XForm form = new XForm(_document, rect.Size);
+            XGraphics gfx = XGraphics.FromForm(form);
+
+            CustomAppearanceHandler.DrawAppearance(gfx, rect.ToXRect());
+
+            form.DrawingFinished();
+
+            // Get existing or create new appearance dictionary
+            if (Elements[PdfAnnotation.Keys.AP] is not PdfDictionary ap)
+            {
+                ap = new PdfDictionary(_document);
+                Elements[PdfAnnotation.Keys.AP] = ap;
+            }
+
+            // Set XRef to normal state
+            ap.Elements["/N"] = form.PdfForm.Reference;
+
+            // PdfRenderer can be null.
+            form.PdfRenderer?.Close();
+        }
+
+        internal override void PrepareForSave()
+        {
+            base.PrepareForSave();
+            if (CustomAppearanceHandler != null!)
+                RenderCustomAppearance();
+        }
+
+        /// <summary>
+        /// Writes a key/value pair of this signature field dictionary.
+        /// </summary>
+        internal override void WriteDictionaryElement(PdfWriter writer, PdfName key)
+        {
+            // Don’t encrypt Contents key’s value (PDF Reference 2.0: 7.6.2, Page 71).
+            if (key.Value == Keys.Contents)
+            {
+                var effectiveSecurityHandler = writer.EffectiveSecurityHandler;
+                writer.EffectiveSecurityHandler = null;
+                base.WriteDictionaryElement(writer, key);
+                writer.EffectiveSecurityHandler = effectiveSecurityHandler;
+            }
+            else
+                base.WriteDictionaryElement(writer, key);
+        }
 
         /// <summary>
         /// Predefined keys of this dictionary.
@@ -34,7 +108,7 @@ namespace PdfSharp.Pdf.AcroForms
 
             /// <summary>
             /// (Required; inheritable) The name of the signature handler to be used for
-            /// authenticating the field�s contents, such as Adobe.PPKLite, Entrust.PPKEF,
+            /// authenticating the field’s contents, such as Adobe.PPKLite, Entrust.PPKEF,
             /// CICI.SignIt, or VeriSign.PPKVS.
             /// </summary>
             [KeyInfo(KeyType.Name | KeyType.Required)]
@@ -82,7 +156,7 @@ namespace PdfSharp.Pdf.AcroForms
             public const string Location = "/Location";
 
             /// <summary>
-            /// (Optional) The reason for the signing, such as (I agree�).
+            /// (Optional) The reason for the signing, such as (I agree…).
             /// </summary>
             [KeyInfo(KeyType.TextString | KeyType.Optional)]
             public const string Reason = "/Reason";

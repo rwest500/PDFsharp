@@ -1,13 +1,11 @@
-// PDFsharp - A .NET library for processing PDF
+﻿// PDFsharp - A .NET library for processing PDF
 // See the LICENSE file in the solution root for more information.
 
-#if WPF
-using System.IO;
-#endif
 using System.Text;
 using PdfSharp.Pdf.Advanced;
 using PdfSharp.Pdf.Security;
 using PdfSharp.Pdf.Internal;
+using PdfSharp.Pdf.Signatures;
 
 namespace PdfSharp.Pdf.IO
 {
@@ -16,54 +14,33 @@ namespace PdfSharp.Pdf.IO
     /// </summary>
     class PdfWriter
     {
-        public PdfWriter(Stream pdfStream, PdfStandardSecurityHandler? securityHandler)
+        public PdfWriter(Stream pdfStream, PdfDocument document, PdfStandardSecurityHandler? effectiveSecurityHandler)
         {
-            _stream = pdfStream;
-            SecurityHandler = securityHandler;
-            //System.Xml.XmlTextWriter
+            _stream = pdfStream ?? throw new ArgumentNullException(nameof(pdfStream));
+            _document = document ?? throw new ArgumentNullException(nameof(document));
+            EffectiveSecurityHandler = effectiveSecurityHandler;
 #if DEBUG
-            _layout = PdfWriterLayout.Verbose;
+            Layout = PdfWriterLayout.Verbose;
 #endif
         }
 
         public void Close(bool closeUnderlyingStream)
         {
-            if (_stream != null! && closeUnderlyingStream)
-            {
-#if UWP
-                _stream.Dispose();
-#else
+            if (closeUnderlyingStream)
                 _stream.Close();
-#endif
-            }
             _stream = null!;
         }
 
-        public void Close()
-        {
-            Close(true);
-        }
+        public void Close() => Close(true);
 
-        public int Position => (int)_stream.Position;
+        public SizeType Position => (SizeType)_stream.Position;
 
         /// <summary>
         /// Gets or sets the kind of layout.
         /// </summary>
-        public PdfWriterLayout Layout
-        {
-            get => _layout;
-            set => _layout = value;
-        }
+        public PdfWriterLayout Layout { get; set; }
 
-        PdfWriterLayout _layout;
-
-        public PdfWriterOptions Options
-        {
-            get => _options;
-            set => _options = value;
-        }
-
-        PdfWriterOptions _options;
+        public PdfWriterOptions Options { get; set; }
 
         // -----------------------------------------------------------
 
@@ -73,7 +50,8 @@ namespace PdfSharp.Pdf.IO
         public void Write(bool value)
         {
             WriteSeparator(CharCat.Character);
-            WriteRaw(value ? bool.TrueString : bool.FalseString);
+            // Wrong: Writes "True" or "False" where it should be "true" or "false": WriteRaw(value ? bool.TrueString : bool.FalseString);
+            WriteRaw(value ? "true" : "false");
             _lastCat = CharCat.Character;
         }
 
@@ -91,6 +69,13 @@ namespace PdfSharp.Pdf.IO
         /// Writes the specified value to the PDF stream.
         /// </summary>
         public void Write(int value)
+        {
+            WriteSeparator(CharCat.Character);
+            WriteRaw(value.ToString(CultureInfo.InvariantCulture));
+            _lastCat = CharCat.Character;
+        }
+
+        public void Write(long value)
         {
             WriteSeparator(CharCat.Character);
             WriteRaw(value.ToString(CultureInfo.InvariantCulture));
@@ -120,7 +105,19 @@ namespace PdfSharp.Pdf.IO
         /// <summary>
         /// Writes the specified value to the PDF stream.
         /// </summary>
+#pragma warning disable CS0618 // Type or member is obsolete
         public void Write(PdfUInteger value)
+#pragma warning restore CS0618 // Type or member is obsolete
+        {
+            WriteSeparator(CharCat.Character);
+            _lastCat = CharCat.Character;
+            WriteRaw(value.Value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// Writes the specified value to the PDF stream.
+        /// </summary>
+        public void Write(PdfLongInteger value)
         {
             WriteSeparator(CharCat.Character);
             _lastCat = CharCat.Character;
@@ -133,7 +130,7 @@ namespace PdfSharp.Pdf.IO
         public void Write(double value)
         {
             WriteSeparator(CharCat.Character);
-            WriteRaw(value.ToString(Config.SignificantFigures7, CultureInfo.InvariantCulture));
+            WriteRaw(value.ToString(Config.SignificantDecimalPlaces7, CultureInfo.InvariantCulture));
             _lastCat = CharCat.Character;
         }
 
@@ -143,8 +140,7 @@ namespace PdfSharp.Pdf.IO
         public void Write(PdfReal value)
         {
             WriteSeparator(CharCat.Character);
-            // Ensure that value is written with decimal point.
-            WriteRaw(value.Value.ToString(Config.SignificantFigures1Plus9, CultureInfo.InvariantCulture));
+            WriteRaw(value.Value.ToString(Config.SignificantDecimalPlaces7, CultureInfo.InvariantCulture));
             _lastCat = CharCat.Character;
         }
 
@@ -157,8 +153,8 @@ namespace PdfSharp.Pdf.IO
 #if true
             PdfStringEncoding encoding = (PdfStringEncoding)(value.Flags & PdfStringFlags.EncodingMask);
             string pdf = (value.Flags & PdfStringFlags.HexLiteral) == 0 ?
-                PdfEncoders.ToStringLiteral(value.Value, encoding, SecurityHandler) :
-                PdfEncoders.ToHexStringLiteral(value.Value, encoding, SecurityHandler);
+                PdfEncoders.ToStringLiteral(value.Value, encoding, EffectiveSecurityHandler) :
+                PdfEncoders.ToHexStringLiteral(value.Value, encoding, EffectiveSecurityHandler);
             WriteRaw(pdf);
 #else
             switch (value.Flags & PdfStringFlags.EncodingMask)
@@ -192,22 +188,74 @@ namespace PdfSharp.Pdf.IO
         }
 
         /// <summary>
+        /// Writes a signature placeholder hexadecimal string to the PDF stream.
+        /// </summary>
+        public void Write(PdfSignaturePlaceholderItem item, out SizeType startPosition, out SizeType endPosition)
+        {
+            WriteSeparator(CharCat.Delimiter);
+
+            // ReSharper disable once RedundantCast
+            startPosition = (SizeType)Position;
+            // A PDF hex string with question marks '<????????...??>'
+            WriteRaw(item.ToString());
+            // ReSharper disable once RedundantCast
+            endPosition = (SizeType)Position;
+
+            _lastCat = CharCat.Delimiter;
+        }
+
+        /// <summary>
         /// Writes the specified value to the PDF stream.
         /// </summary>
         public void Write(PdfName value)
         {
-            WriteSeparator(CharCat.Delimiter, '/');
-            string name = value.Value;
+            // From Adobe specs: 3.2.4 Name objects
+            // Beginning with PDF 1.2, any character except null (character code 0) may be included
+            // in a name by writing its 2-digit hexadecimal code, preceded by the number
+            // sign character (#); see implementation notes 3 and 4 in Appendix H. This
+            // syntax is required in order to represent any of the delimiter or white-space characters
+            // or the number sign character itself; it is recommended but not required for
+            // characters whose codes are outside the range 33(!) to 126(~).
 
-            StringBuilder pdf = new StringBuilder("/");
+            // And also:
+            // In such situations, it is recommended that the sequence of bytes (after expansion
+            // of # sequences, if any) be interpreted according to UTF-8, a variable-length byte-encoded
+            // representation of Unicode in which the printable ASCII characters have
+            // the same representations as in ASCII.This enables a name object to represent text
+            // in any natural language, subject to the implementation limit on the length of a
+            // name.
+
+            WriteSeparator(CharCat.Delimiter/*, '/'*/);
+            string name = value.Value;
+            Debug.Assert(name[0] == '/');
+
+            // Encode to raw UTF-8 is any char is larger than 126.
+            // 127 [DEL] is not a valid value and is also get encoded.
+            for (int idx = 1; idx < name.Length; idx++)
+            {
+                char ch = name[idx];
+                if (ch > 126)
+                {
+                    // Non-ASCII character found, convert whole string to raw UTF-8.
+                    var bytes = Encoding.UTF8.GetBytes(name);
+                    var nameBuilder = new StringBuilder();
+                    foreach (var ch2 in bytes)
+                        nameBuilder.Append((char)ch2);
+                    name = nameBuilder.ToString();
+                    break;
+                }
+            }
+
+            // Here all high bytes are zero.
+            var pdf = new StringBuilder("/");
             for (int idx = 1; idx < name.Length; idx++)
             {
                 char ch = name[idx];
                 Debug.Assert(ch < 256);
                 if (ch > ' ')
+                {
                     switch (ch)
                     {
-                        // TODO: is this all?
                         case '%':
                         case '/':
                         case '<':
@@ -220,10 +268,16 @@ namespace PdfSharp.Pdf.IO
                             break;
 
                         default:
-                            pdf.Append(name[idx]);
-                            continue;
+                            if (ch <= 126)
+                            {
+                                // See recommendation above.
+                                pdf.Append(ch);
+                                continue;
+                            }
+                            break;
                     }
-                pdf.AppendFormat("#{0:X2}", (int)name[idx]);
+                }
+                pdf.AppendFormat("#{0:X2}", (int)ch);
             }
             WriteRaw(pdf.ToString());
             _lastCat = CharCat.Character;
@@ -238,8 +292,8 @@ namespace PdfSharp.Pdf.IO
 
         public void Write(PdfRectangle rect)
         {
-            const string format = Config.SignificantFigures3;
-            WriteSeparator(CharCat.Delimiter, '/');
+            const string format = Config.SignificantDecimalPlaces3;
+            WriteSeparator(CharCat.Delimiter/*, '/'*/);
             WriteRaw(PdfEncoders.Format("[{0:" + format + "} {1:" + format + "} {2:" + format + "} {3:" + format + "}]", rect.X1, rect.Y1, rect.X2, rect.Y2));
             _lastCat = CharCat.Delimiter;
         }
@@ -260,7 +314,7 @@ namespace PdfSharp.Pdf.IO
                 bytes = PdfEncoders.DocEncoding.GetBytes(text);
             else
                 bytes = PdfEncoders.UnicodeEncoding.GetBytes(text);
-            bytes = PdfEncoders.FormatStringLiteral(bytes, unicode, true, false, SecurityHandler);
+            bytes = PdfEncoders.FormatStringLiteral(bytes, unicode, true, false, EffectiveSecurityHandler);
             Write(bytes);
             _lastCat = CharCat.Delimiter;
         }
@@ -270,7 +324,7 @@ namespace PdfSharp.Pdf.IO
             WriteSeparator(CharCat.Delimiter);
             //WriteRaw(PdfEncoders.DocEncode(text, false));
             byte[] bytes = PdfEncoders.DocEncoding.GetBytes(text);
-            bytes = PdfEncoders.FormatStringLiteral(bytes, false, false, false, SecurityHandler);
+            bytes = PdfEncoders.FormatStringLiteral(bytes, false, false, false, EffectiveSecurityHandler);
             Write(bytes);
             _lastCat = CharCat.Delimiter;
         }
@@ -280,7 +334,7 @@ namespace PdfSharp.Pdf.IO
             WriteSeparator(CharCat.Delimiter);
             //WriteRaw(PdfEncoders.DocEncodeHex(text));
             byte[] bytes = PdfEncoders.DocEncoding.GetBytes(text);
-            bytes = PdfEncoders.FormatStringLiteral(bytes, false, false, true, SecurityHandler);
+            bytes = PdfEncoders.FormatStringLiteral(bytes, false, false, true, EffectiveSecurityHandler);
             _stream.Write(bytes, 0, bytes.Length);
             _lastCat = CharCat.Delimiter;
         }
@@ -294,7 +348,7 @@ namespace PdfSharp.Pdf.IO
             if (indirect)
             {
                 WriteObjectAddress(obj);
-                SecurityHandler?.EnterObject(obj.ObjectID);
+                EffectiveSecurityHandler?.EnterObject(obj.ObjectID);
             }
             _stack.Add(new StackItem(obj));
             if (indirect)
@@ -321,7 +375,7 @@ namespace PdfSharp.Pdf.IO
                     _lastCat = CharCat.NewLine;
                 }
             }
-            if (_layout == PdfWriterLayout.Verbose)
+            if (Layout == PdfWriterLayout.Verbose)
                 IncreaseIndent();
         }
 
@@ -339,8 +393,8 @@ namespace PdfSharp.Pdf.IO
             PdfObject value = stackItem.Object;
             var indirect = value.IsIndirect;
             if (indirect)
-                SecurityHandler?.LeaveObject();
-            if (_layout == PdfWriterLayout.Verbose)
+                EffectiveSecurityHandler?.LeaveObject();
+            if (Layout == PdfWriterLayout.Verbose)
                 DecreaseIndent();
             if (value is PdfArray)
             {
@@ -374,7 +428,7 @@ namespace PdfSharp.Pdf.IO
             {
                 NewLine();
                 WriteRaw("endobj\n");
-                if (_layout == PdfWriterLayout.Verbose)
+                if (Layout == PdfWriterLayout.Verbose)
                     WriteRaw("%--------------------------------------------------------------------------------------------------\n");
             }
         }
@@ -384,7 +438,7 @@ namespace PdfSharp.Pdf.IO
         /// </summary>
         public void WriteStream(PdfDictionary value, bool omitStream)
         {
-            var stackItem = _stack[_stack.Count - 1];
+            var stackItem = _stack[^1];
             Debug.Assert(stackItem.Object is PdfDictionary);
             Debug.Assert(stackItem.Object.IsIndirect);
             stackItem.HasStream = true;
@@ -393,19 +447,17 @@ namespace PdfSharp.Pdf.IO
 
             if (omitStream)
             {
-                WriteRaw("  �...stream content omitted...�\n");  // useful for debugging only
+                WriteRaw("  «…stream content omitted…»\n");  // useful for debugging only
             }
             else
             {
+                // Earlier versions of PDFsharp skipped the '\n' before 'endstream' if the last byte of
+                // the stream is a linefeed. This was wrong and now fixed.
                 var bytes = value.Stream.Value;
                 if (bytes.Length != 0)
-                {
                     Write(bytes);
-                    if (_lastCat != CharCat.NewLine)
-                        WriteRaw('\n');
-                }
             }
-            WriteRaw("endstream\n");
+            WriteRaw("\nendstream\n");
         }
 
         public void WriteRaw(string rawString)
@@ -415,7 +467,7 @@ namespace PdfSharp.Pdf.IO
 
             byte[] bytes = PdfEncoders.RawEncoding.GetBytes(rawString);
             _stream.Write(bytes, 0, bytes.Length);
-            _lastCat = GetCategory((char)bytes[bytes.Length - 1]);
+            _lastCat = GetCategory((char)bytes[^1]);
         }
 
         public void WriteRaw(char ch)
@@ -428,52 +480,79 @@ namespace PdfSharp.Pdf.IO
 
         public void Write(byte[] bytes)
         {
-            if (bytes == null || bytes.Length == 0)
+            if (bytes == null! || bytes.Length == 0)
                 return;
 
             _stream.Write(bytes, 0, bytes.Length);
-            _lastCat = GetCategory((char)bytes[bytes.Length - 1]);
+            _lastCat = GetCategory((char)bytes[^1]);
         }
 
         void WriteObjectAddress(PdfObject value)
         {
-            if (_layout == PdfWriterLayout.Verbose)
-                WriteRaw(String.Format("{0} {1} obj   % {2}\n",
-                    value.ObjectID.ObjectNumber, value.ObjectID.GenerationNumber,
-                    value.GetType().FullName));
+            if (Layout == PdfWriterLayout.Verbose)
+            {
+                string comment = value.Comment;
+                if (!String.IsNullOrEmpty(comment))
+                    comment = $" -- {value.Comment}";
+
+#if DEBUG_
+                if (_document is null)
+                    _ = typeof(int);
+#endif
+                // #PDF-A
+                if (_document.IsPdfA)
+                {
+                    // Write full type name and comment in a separate line to be PDF-A conform.
+                    WriteRaw(Invariant($"% {value.GetType().FullName}{comment}\n"));
+                    WriteRaw(Invariant($"{value.ObjectID.ObjectNumber} {value.ObjectID.GenerationNumber} obj\n"));
+                }
+                else
+                {
+                    // Write object number and full type name and comment in one line.
+                    WriteRaw(Invariant($"{value.ObjectID.ObjectNumber} {value.ObjectID.GenerationNumber} obj   % {value.GetType().FullName}{comment}\n"));
+                }
+            }
             else
-                WriteRaw(String.Format("{0} {1} obj\n", value.ObjectID.ObjectNumber, value.ObjectID.GenerationNumber));
+            {
+                // Write object number only.
+                WriteRaw(Invariant($"{value.ObjectID.ObjectNumber} {value.ObjectID.GenerationNumber} obj\n"));
+            }
         }
 
         public void WriteFileHeader(PdfDocument document)
         {
-            StringBuilder header = new StringBuilder("%PDF-");
+            var header = new StringBuilder("%PDF-");
             int version = document._version;
-            header.Append((version / 10).ToString(CultureInfo.InvariantCulture) + "." +
-              (version % 10).ToString(CultureInfo.InvariantCulture) + "\n%\xD3\xF4\xCC\xE1\n");
+            //header.Append((version / 10).ToString(CultureInfo.InvariantCulture) + "." +
+            //  (version % 10).ToString(CultureInfo.InvariantCulture) + "\n%\xD3\xF4\xCC\xE1\n");
+            header.Append(Invariant($"{version / 10}.{version % 10}\n%\xD3\xF4\xCC\xE1\n"));
             WriteRaw(header.ToString());
 
-            if (_layout == PdfWriterLayout.Verbose)
+            if (Layout == PdfWriterLayout.Verbose)
             {
-                WriteRaw(String.Format("% PDFsharp Version {0} (verbose mode)\n", PdfSharpProductVersionInformation.Version));
+                WriteRaw($"% PDFsharp Version {PdfSharpProductVersionInformation.Version} (verbose mode)\n");
                 // Keep some space for later fix-up.
                 _commentPosition = (int)_stream.Position + 2;
-                WriteRaw("%                                                \n");
-                WriteRaw("%                                                \n");
-                WriteRaw("%                                                \n");
-                WriteRaw("%                                                \n");
-                WriteRaw("%                                                \n");
+                WriteRaw("%                                                \n");  // Creation date placeholder
+                WriteRaw("%                                                \n");  // Creation time placeholder
+                WriteRaw("%                                                \n");  // File size placeholder
+                WriteRaw("%                                                \n");  // Pages placeholder
+                WriteRaw("%                                                \n");  // Objects placeholder
+#if DEBUG
+                WriteRaw("% This document is created from a DEBUG build. Do not use a DEBUG build of PDFsharp for production.\n");
+#endif
                 WriteRaw("%--------------------------------------------------------------------------------------------------\n");
             }
         }
 
-        public void WriteEof(PdfDocument document, int startxref)
+        public void WriteEof(PdfDocument document, SizeType startxref)
         {
+            WriteRaw($"% Created with PDFsharp {PdfSharpProductVersionInformation.SemanticVersion} ({Capabilities.Build.BuildName}) under .NET {Capabilities.Build.Framework}\n");
             WriteRaw("startxref\n");
             WriteRaw(startxref.ToString(CultureInfo.InvariantCulture));
             WriteRaw("\n%%EOF\n");
-            int fileSize = (int)_stream.Position;
-            if (_layout == PdfWriterLayout.Verbose)
+            SizeType fileSize = (SizeType)_stream.Position;
+            if (Layout == PdfWriterLayout.Verbose)
             {
                 TimeSpan duration = DateTime.Now - document._creation;
 
@@ -481,15 +560,15 @@ namespace PdfSharp.Pdf.IO
                 // Without InvariantCulture parameter the following line fails if the current culture is e.g.
                 // a Far East culture, because the date string contains non-ASCII characters.
                 // So never never never never use ToString without a culture info.
-                WriteRaw("Creation date: " + document._creation.ToString("G", CultureInfo.InvariantCulture));
+                WriteRaw(Invariant($"Creation date: {document._creation:G}"));
                 _stream.Position = _commentPosition + 50;
-                WriteRaw("Creation time: " + duration.TotalSeconds.ToString("0.000", CultureInfo.InvariantCulture) + " seconds");
+                WriteRaw(Invariant($"Creation time: {duration.TotalSeconds:0.000} seconds"));
                 _stream.Position = _commentPosition + 100;
-                WriteRaw("File size: " + fileSize.ToString(CultureInfo.InvariantCulture) + " bytes");
+                WriteRaw(Invariant($"File size: {fileSize:#,###} bytes"));
                 _stream.Position = _commentPosition + 150;
-                WriteRaw("Pages: " + document.Pages.Count.ToString(CultureInfo.InvariantCulture));
+                WriteRaw(Invariant($"Pages: {document.Pages.Count:#}"));  // No thousands separator here.
                 _stream.Position = _commentPosition + 200;
-                WriteRaw("Objects: " + document.IrefTable.ObjectTable.Count.ToString(CultureInfo.InvariantCulture));
+                WriteRaw(Invariant($"Objects: {document.IrefTable.ObjectTable.Count:#,###}"));
             }
         }
 
@@ -531,12 +610,12 @@ namespace PdfSharp.Pdf.IO
             WriteRaw(IndentBlanks);
         }
 
-        void WriteSeparator(CharCat cat, char ch = '\0')
+        void WriteSeparator(CharCat cat /*, char ch = '\0'*/)
         {
             switch (_lastCat)
             {
                 case CharCat.NewLine:
-                    if (_layout == PdfWriterLayout.Verbose)
+                    if (Layout == PdfWriterLayout.Verbose)
                         WriteIndent();
                     break;
 
@@ -544,9 +623,8 @@ namespace PdfSharp.Pdf.IO
                     break;
 
                 case CharCat.Character:
-                    if (_layout == PdfWriterLayout.Verbose)
+                    if (Layout == PdfWriterLayout.Verbose)
                     {
-                        //if (cat == CharCat.Character || ch == '/')
                         _stream.WriteByte((byte)' ');
                     }
                     else
@@ -587,21 +665,17 @@ namespace PdfSharp.Pdf.IO
         internal Stream Stream => _stream;
 
         Stream _stream;
+        readonly PdfDocument _document;
 
-        internal PdfStandardSecurityHandler? SecurityHandler { get; set; }
+        internal PdfStandardSecurityHandler? EffectiveSecurityHandler { get; set; }
 
-        class StackItem
+        class StackItem(PdfObject value)
         {
-            public StackItem(PdfObject value)
-            {
-                Object = value;
-            }
-
-            public readonly PdfObject Object;
+            public readonly PdfObject Object = value;
             public bool HasStream;
         }
 
-        readonly List<StackItem> _stack = new();
+        readonly List<StackItem> _stack = [];
         int _commentPosition;
     }
 }

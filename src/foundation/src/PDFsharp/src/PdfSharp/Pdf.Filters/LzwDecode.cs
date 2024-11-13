@@ -1,10 +1,6 @@
 // PDFsharp - A .NET library for processing PDF
 // See the LICENSE file in the solution root for more information.
 
-#if WPF
-using System.IO;
-#endif
-
 namespace PdfSharp.Pdf.Filters
 {
     /// <summary>
@@ -153,7 +149,7 @@ namespace PdfSharp.Pdf.Filters
             }
         }
 
-        readonly int[] _andTable = { 511, 1023, 2047, 4095 };
+        readonly int[] _andTable = [511, 1023, 2047, 4095];
         byte[][] _stringTable = default!;
         byte[] _data = default!;
         int _tableIndex, _bitsToGet = 9;

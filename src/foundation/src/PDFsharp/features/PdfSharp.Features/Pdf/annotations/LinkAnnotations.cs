@@ -5,7 +5,7 @@ using PdfSharp.Pdf.IO;
 using PdfSharp.Quality;
 
 #pragma warning disable 1591
-namespace PdfSharp.Features.Annotations
+namespace PdfSharp.Features.Pdf
 {
     public class LinkAnnotations
     {
@@ -19,10 +19,11 @@ namespace PdfSharp.Features.Annotations
 
             //masterDoc.Pages.Insert(1, insertDoc.Pages[0]);
             //masterDoc.Pages.Insert(2, insertDoc.Pages[1]);
-            
+
             masterDoc.Pages.InsertRange(1, insertDoc, 0, 2);
 
-            masterDoc.Save("Test_tempfile.pdf");
+            var filename = PdfFileUtility.GetTempPdfFileName("LinkAnnotations");
+            masterDoc.Save(filename);
         }
     }
 }

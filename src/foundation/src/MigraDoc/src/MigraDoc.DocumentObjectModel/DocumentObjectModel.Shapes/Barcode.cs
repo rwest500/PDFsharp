@@ -76,7 +76,7 @@ namespace MigraDoc.DocumentObjectModel.Shapes
         }
 
         /// <summary>
-        /// ??? TODO
+        /// Ratio between narrow and wide lines.
         /// </summary>
         public double LineRatio
         {
@@ -85,7 +85,7 @@ namespace MigraDoc.DocumentObjectModel.Shapes
         }
 
         /// <summary>
-        /// ??? TODO
+        /// Height of lines.
         /// </summary>
         public double LineHeight
         {
@@ -94,7 +94,7 @@ namespace MigraDoc.DocumentObjectModel.Shapes
         }
 
         /// <summary>
-        /// ??? TODO
+        /// Width of a narrow line.
         /// </summary>
         public double NarrowLineWidth
         {
@@ -108,7 +108,7 @@ namespace MigraDoc.DocumentObjectModel.Shapes
         internal override void Serialize(Serializer serializer)
         {
             if (String.IsNullOrEmpty(Values.Code))
-                throw new InvalidOperationException(DomSR.MissingObligatoryProperty("Name", "BookmarkField"));
+                throw new InvalidOperationException(MdDomMsgs.MissingObligatoryProperty(nameof(Code), nameof(Barcode)).Message);
 
             serializer.WriteLine("\\barcode(\"" + Code + "\")");
 

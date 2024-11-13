@@ -1,4 +1,7 @@
-﻿// ReSharper disable once CheckNamespace
+﻿// PDFsharp - A .NET library for processing PDF
+// See the LICENSE file in the solution root for more information.
+
+// ReSharper disable once CheckNamespace
 namespace PdfSharp.BigGustave
 {
     using System;
@@ -9,17 +12,18 @@ namespace PdfSharp.BigGustave
     /// </summary>
     public readonly struct ImageHeader
     {
-        internal static readonly byte[] HeaderBytes = {
+        internal static readonly byte[] HeaderBytes =
+        [
             73, 72, 68, 82
-        };
+        ];
 
-        private static readonly IReadOnlyDictionary<ColorType, HashSet<byte>> PermittedBitDepths = new Dictionary<ColorType, HashSet<byte>>
+        static readonly IReadOnlyDictionary<ColorType, HashSet<byte>> PermittedBitDepths = new Dictionary<ColorType, HashSet<byte>>
         {
-            {ColorType.None, new HashSet<byte> {1, 2, 4, 8, 16}},
-            {ColorType.ColorUsed, new HashSet<byte> {8, 16}},
-            {ColorType.PaletteUsed | ColorType.ColorUsed, new HashSet<byte> {1, 2, 4, 8}},
-            {ColorType.AlphaChannelUsed, new HashSet<byte> {8, 16}},
-            {ColorType.AlphaChannelUsed | ColorType.ColorUsed, new HashSet<byte> {8, 16}},
+            {ColorType.None, [1, 2, 4, 8, 16] },
+            {ColorType.ColorUsed, [8, 16] },
+            {ColorType.PaletteUsed | ColorType.ColorUsed, [1, 2, 4, 8] },
+            {ColorType.AlphaChannelUsed, [8, 16] },
+            {ColorType.AlphaChannelUsed | ColorType.ColorUsed, [8, 16] },
         };
 
         /// <summary>

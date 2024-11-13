@@ -18,13 +18,13 @@ namespace PdfSharp.Charting.Renderers
 
         /// <summary>
         /// Derived renderer should return an initialized and renderer-specific rendererInfo,
-        /// e. g. XAxisRenderer returns an new instance of AxisRendererInfo class.
+        /// e.g. XAxisRenderer returns an new instance of AxisRendererInfo class.
         /// </summary>
         internal virtual RendererInfo? Init()
             => null;
 
         /// <summary>
-        /// Layouts and calculates the space used by the renderer's drawing item.
+        /// Layouts and calculates the space used by the renderer’s drawing item.
         /// </summary>
         internal virtual void Format()
         {

@@ -15,7 +15,6 @@ namespace PdfSharp.Pdf.Advanced
             : base(document)
         { }
 
-
         /// <summary>
         /// Gets a PdfExtGState with the key 'CA' set to the specified alpha value.
         /// </summary>
@@ -63,7 +62,7 @@ namespace PdfSharp.Pdf.Advanced
             return extGState;
         }
 
-        readonly Dictionary<string, PdfExtGState> _strokeAlphaValues = new Dictionary<string, PdfExtGState>();
-        readonly Dictionary<string, PdfExtGState> _nonStrokeStates = new Dictionary<string, PdfExtGState>();
+        readonly Dictionary<string, PdfExtGState> _strokeAlphaValues = [];
+        readonly Dictionary<string, PdfExtGState> _nonStrokeStates = [];
     }
 }

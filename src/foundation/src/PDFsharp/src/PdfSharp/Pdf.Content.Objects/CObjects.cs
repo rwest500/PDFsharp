@@ -2,8 +2,8 @@
 // See the LICENSE file in the solution root for more information.
 
 using System.Collections;
-using System.IO;
 using System.Text;
+using PdfSharp.Internal;
 
 namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
 {
@@ -21,26 +21,17 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
         /// <summary>
         /// Creates a new object that is a copy of the current instance.
         /// </summary>
-        object ICloneable.Clone()
-        {
-            return Copy();
-        }
+        object ICloneable.Clone() => Copy();
 
         /// <summary>
         /// Creates a new object that is a copy of the current instance.
         /// </summary>
-        public CObject Clone()
-        {
-            return Copy();
-        }
+        public CObject Clone() => Copy();
 
         /// <summary>
         /// Implements the copy mechanism. Must be overridden in derived classes.
         /// </summary>
-        protected virtual CObject Copy()
-        {
-            return (CObject)MemberwiseClone();
-        }
+        protected virtual CObject Copy() => (CObject)MemberwiseClone();
 
         /// <summary>
         /// 
@@ -57,19 +48,12 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
         /// <summary>
         /// Creates a new object that is a copy of the current instance.
         /// </summary>
-        public new CComment Clone()
-        {
-            return (CComment)Copy();
-        }
+        public new CComment Clone() => (CComment)Copy();
 
-        /// <summary>
-        /// Implements the copy mechanism of this class.
-        /// </summary>
-        protected override CObject Copy()
-        {
-            CObject obj = base.Copy();
-            return obj;
-        }
+        ///// <summary>
+        ///// Implements the copy mechanism of this class.
+        ///// </summary>
+        //protected override CObject Copy() => base.Copy();
 
         /// <summary>
         /// Gets or sets the comment text.
@@ -84,41 +68,32 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
         /// <summary>
         /// Returns a string that represents the current comment.
         /// </summary>
-        public override string ToString()
-        {
-            return "% " + _text;
-        }
+        public override string ToString() => "% " + _text;
 
-        internal override void WriteObject(ContentWriter writer)
-        {
-            writer.WriteLineRaw(ToString());
-        }
+        internal override void WriteObject(ContentWriter writer) => writer.WriteLineRaw(ToString());
     }
 
     /// <summary>
     /// Represents a sequence of objects in a PDF content stream.
     /// </summary>
     [DebuggerDisplay("(count={" + nameof(Count) + "})")]
-    public class CSequence : CObject, IList<CObject>  // , ICollection<CObject>, IEnumerable<CObject>
+    public class CSequence : CObject, IList<CObject>
     {
         /// <summary>
         /// Creates a new object that is a copy of the current instance.
         /// </summary>
-        public new CSequence Clone()
-        {
-            return (CSequence)Copy();
-        }
+        public new CSequence Clone() => (CSequence)Copy();
 
         /// <summary>
         /// Implements the copy mechanism of this class.
         /// </summary>
         protected override CObject Copy()
         {
-            CObject obj = base.Copy();
-            _items = new List<CObject>(_items);
+            var clone = (CSequence)base.Copy();
+            clone._items = [];
             for (int idx = 0; idx < _items.Count; idx++)
-                _items[idx] = _items[idx].Clone();
-            return obj;
+                clone._items.Add(_items[idx].Clone());
+            return clone;
         }
 
         /// <summary>
@@ -137,79 +112,37 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
         /// <summary>
         /// Adds the specified value add the end of the sequence.
         /// </summary>
-        public void Add(CObject value)
-        {
-            _items.Add(value);
-        }
+        public void Add(CObject value) => _items.Add(value);
 
         /// <summary>
         /// Removes all elements from the sequence.
         /// </summary>
-        public void Clear()
-        {
-            _items.Clear();
-        }
-
-        //bool IList.Contains(object value)
-        //{
-        //  return items.Contains(value);
-        //}
+        public void Clear() => _items.Clear();
 
         /// <summary>
         /// Determines whether the specified value is in the sequence.
         /// </summary>
-        public bool Contains(CObject value)
-        {
-            return _items.Contains(value);
-        }
+        public bool Contains(CObject value) => _items.Contains(value);
 
         /// <summary>
         /// Returns the index of the specified value in the sequence or -1, if no such value is in the sequence.
         /// </summary>
-        public int IndexOf(CObject value)
-        {
-            return _items.IndexOf(value);
-        }
+        public int IndexOf(CObject value) => _items.IndexOf(value);
 
         /// <summary>
         /// Inserts the specified value in the sequence.
         /// </summary>
-        public void Insert(int index, CObject value)
-        {
-            _items.Insert(index, value);
-        }
-
-        /////// <summary>
-        /////// Gets a value indicating whether the sequence has a fixed size.
-        /////// </summary>
-        ////public bool IsFixedSize
-        ////{
-        ////  get { return items.IsFixedSize; }
-        ////}
-
-        /////// <summary>
-        /////// Gets a value indicating whether the sequence is read-only.
-        /////// </summary>
-        ////public bool IsReadOnly
-        ////{
-        ////  get { return items.IsReadOnly; }
-        ////}
+        public void Insert(int index, CObject value) => _items.Insert(index, value);
 
         /// <summary>
         /// Removes the specified value from the sequence.
         /// </summary>
-        public bool Remove(CObject value)
-        {
-            return _items.Remove(value);
-        }
+        public bool Remove(CObject value) => _items.Remove(value);
 
         /// <summary>
         /// Removes the value at the specified index from the sequence.
         /// </summary>
-        public void RemoveAt(int index)
-        {
-            _items.RemoveAt(index);
-        }
+        public void RemoveAt(int index) => _items.RemoveAt(index);
 
         /// <summary>
         /// Gets or sets a CObject at the specified index.
@@ -217,7 +150,7 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
         /// <value></value>
         public CObject this[int index]
         {
-            get => (CObject)_items[index];
+            get => _items[index];
             set => _items[index] = value;
         }
         #endregion
@@ -227,32 +160,12 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
         /// <summary>
         /// Copies the elements of the sequence to the specified array.
         /// </summary>
-        public void CopyTo(CObject[] array, int index)
-        {
-            _items.CopyTo(array, index);
-        }
-
+        public void CopyTo(CObject[] array, int index) => _items.CopyTo(array, index);
 
         /// <summary>
         /// Gets the number of elements contained in the sequence.
         /// </summary>
         public int Count => _items.Count;
-
-        ///// <summary>
-        ///// Gets a value indicating whether access to the sequence is synchronized (thread safe).
-        ///// </summary>
-        //public bool IsSynchronized
-        //{
-        //  get { return items.IsSynchronized; }
-        //}
-
-        ///// <summary>
-        ///// Gets an object that can be used to synchronize access to the sequence.
-        ///// </summary>
-        //public object SyncRoot
-        //{
-        //  get { return items.SyncRoot; }
-        //}
 
         #endregion
 
@@ -261,10 +174,7 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
         /// <summary>
         /// Returns an enumerator that iterates through the sequence.
         /// </summary>
-        public IEnumerator<CObject> GetEnumerator()
-        {
-            return _items.GetEnumerator();
-        }
+        public IEnumerator<CObject> GetEnumerator() => _items.GetEnumerator();
 
         #endregion
 
@@ -274,19 +184,16 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
         public byte[] ToContent()
         {
             Stream stream = new MemoryStream();
-            ContentWriter writer = new ContentWriter(stream);
+            ContentWriter writer = new(stream);
             WriteObject(writer);
             writer.Close(false);
 
             stream.Position = 0;
             int count = (int)stream.Length;
             byte[] bytes = new byte[count];
-            stream.Read(bytes, 0, count);
-#if !UWP
+            var readBytes = stream.Read(bytes, 0, count);
+            Debug.Assert(readBytes == count);
             stream.Close();
-#else
-            stream.Dispose();
-#endif
             return bytes;
         }
 
@@ -295,7 +202,7 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
         /// </summary>
         public override string ToString()
         {
-            StringBuilder s = new StringBuilder();
+            var s = new StringBuilder();
 
             for (int idx = 0; idx < _items.Count; idx++)
                 s.Append(_items[idx]);
@@ -303,10 +210,7 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
             return s.ToString();
         }
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         internal override void WriteObject(ContentWriter writer)
         {
@@ -316,72 +220,58 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
 
         #region IList<CObject> Members
 
-        int IList<CObject>.IndexOf(CObject item)
-        {
-            throw new NotImplementedException();
-        }
+        int IList<CObject>.IndexOf(CObject item) => _items.IndexOf(item);
 
-        void IList<CObject>.Insert(int index, CObject item)
-        {
-            throw new NotImplementedException();
-        }
+        void IList<CObject>.Insert(int index, CObject item) => _items.Insert(index, item);
 
-        void IList<CObject>.RemoveAt(int index)
-        {
-            throw new NotImplementedException();
-        }
+        void IList<CObject>.RemoveAt(int index) => _items.RemoveAt(index);
 
         CObject IList<CObject>.this[int index]
         {
-            get => throw new NotImplementedException();
-            set => throw new NotImplementedException();
+            get => _items[index];
+            set => _items[index] = value;
         }
 
         #endregion
 
         #region ICollection<CObject> Members
 
-        void ICollection<CObject>.Add(CObject item)
-        {
-            throw new NotImplementedException();
-        }
+        void ICollection<CObject>.Add(CObject item) => Add(item);
 
-        void ICollection<CObject>.Clear()
-        {
-            throw new NotImplementedException();
-        }
+        void ICollection<CObject>.Clear() => Clear();
 
-        bool ICollection<CObject>.Contains(CObject item)
-        {
-            throw new NotImplementedException();
-        }
+        bool ICollection<CObject>.Contains(CObject item) => Contains(item);
 
         void ICollection<CObject>.CopyTo(CObject[] array, int arrayIndex)
         {
-            throw new NotImplementedException();
+            if (array == null!)
+                throw new ArgumentNullException(nameof(array));
+
+            if (arrayIndex < 0)
+                throw new ArgumentOutOfRangeException(nameof(array));
+
+            if (_items.Count > array.Length - arrayIndex)
+                throw new ArgumentException("The number of elements in the source collection is greater than the available space from arrayIndex to the end of the destination array.");
+
+            for (int i = arrayIndex; i < _items.Count; i++)
+                array[i] = _items[i];
         }
 
-        int ICollection<CObject>.Count => throw new NotImplementedException();
+        int ICollection<CObject>.Count => _items.Count;
 
-        bool ICollection<CObject>.IsReadOnly => throw new NotImplementedException();
+        bool ICollection<CObject>.IsReadOnly => false;
 
-        bool ICollection<CObject>.Remove(CObject item)
-        {
-            throw new NotImplementedException();
-        }
+        bool ICollection<CObject>.Remove(CObject item) => _items.Remove(item);
 
         #endregion
 
         #region IEnumerable<CObject> Members
 
-        IEnumerator<CObject> IEnumerable<CObject>.GetEnumerator()
-        {
-            throw new NotImplementedException();
-        }
+        IEnumerator<CObject> IEnumerable<CObject>.GetEnumerator() => _items.GetEnumerator();
 
         #endregion
 
-        List<CObject> _items = new List<CObject>();
+        List<CObject> _items = [];
     }
 
     /// <summary>
@@ -392,24 +282,12 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
         /// <summary>
         /// Creates a new object that is a copy of the current instance.
         /// </summary>
-        public new CNumber Clone()
-        {
-            return (CNumber)Copy();
-        }
+        public new CNumber Clone() => (CNumber)Copy();
 
-        /// <summary>
-        /// Implements the copy mechanism of this class.
-        /// </summary>
-        protected override CObject Copy()
-        {
-            CObject obj = base.Copy();
-            return obj;
-        }
-
-        //internal override void WriteObject(ContentWriter writer)
-        //{
-        //  throw new Exception("Must not come here.");
-        //}
+        ///// <summary>
+        ///// Implements the copy mechanism of this class.
+        ///// </summary>
+        //protected override CObject Copy() => base.Copy();
     }
 
     /// <summary>
@@ -421,19 +299,12 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
         /// <summary>
         /// Creates a new object that is a copy of the current instance.
         /// </summary>
-        public new CInteger Clone()
-        {
-            return (CInteger)Copy();
-        }
+        public new CInteger Clone() => (CInteger)Copy();
 
-        /// <summary>
-        /// Implements the copy mechanism of this class.
-        /// </summary>
-        protected override CObject Copy()
-        {
-            CObject obj = base.Copy();
-            return obj;
-        }
+        ///// <summary>
+        ///// Implements the copy mechanism of this class.
+        ///// </summary>
+        //protected override CObject Copy() => base.Copy();
 
         /// <summary>
         /// Gets or sets the value.
@@ -443,21 +314,16 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
             get => _value;
             set => _value = value;
         }
-
         int _value;
 
         /// <summary>
         /// Returns a string that represents the current value.
         /// </summary>
         public override string ToString()
-        {
-            return _value.ToString(CultureInfo.InvariantCulture);
-        }
+            => _value.ToString(CultureInfo.InvariantCulture);
 
         internal override void WriteObject(ContentWriter writer)
-        {
-            writer.WriteRaw(ToString() + " ");
-        }
+            => writer.WriteRaw(ToString() + " ");
     }
 
     /// <summary>
@@ -469,44 +335,29 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
         /// <summary>
         /// Creates a new object that is a copy of the current instance.
         /// </summary>
-        public new CReal Clone()
-        {
-            return (CReal)Copy();
-        }
+        public new CReal Clone() => (CReal)Copy();
 
-        /// <summary>
-        /// Implements the copy mechanism of this class.
-        /// </summary>
-        protected override CObject Copy()
-        {
-            CObject obj = base.Copy();
-            return obj;
-        }
+        ///// <summary>
+        ///// Implements the copy mechanism of this class.
+        ///// </summary>
+        //protected override CObject Copy() => base.Copy();
 
         /// <summary>
         /// Gets or sets the value.
         /// </summary>
-        public double Value
-        {
-            get => _value;
-            set => _value = value;
-        }
-
-        double _value;
+        public double Value { get; set; }
 
         /// <summary>
         /// Returns a string that represents the current value.
         /// </summary>
         public override string ToString()
         {
-            const string format = Config.SignificantFigures1Plus9;
-            return _value.ToString(format, CultureInfo.InvariantCulture);
+            const string format = Config.SignificantDecimalPlaces1Plus9;
+            return Value.ToString(format, CultureInfo.InvariantCulture);
         }
 
         internal override void WriteObject(ContentWriter writer)
-        {
-            writer.WriteRaw(ToString() + " ");
-        }
+            => writer.WriteRaw(ToString() + " ");
     }
 
     /// <summary>
@@ -536,7 +387,7 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
 
         /// <summary>
         /// HACK: The string is the content of a dictionary.
-        /// Currently there is no parser for dictionaries in Content Streams.
+        /// Currently, there is no parser for dictionaries in Content Streams.
         /// </summary>
         Dictionary,
     }
@@ -550,19 +401,12 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
         /// <summary>
         /// Creates a new object that is a copy of the current instance.
         /// </summary>
-        public new CString Clone()
-        {
-            return (CString)Copy();
-        }
+        public new CString Clone() => (CString)Copy();
 
-        /// <summary>
-        /// Implements the copy mechanism of this class.
-        /// </summary>
-        protected override CObject Copy()
-        {
-            CObject obj = base.Copy();
-            return obj;
-        }
+        ///// <summary>
+        ///// Implements the copy mechanism of this class.
+        ///// </summary>
+        //protected override CObject Copy() => base.Copy();
 
         /// <summary>
         /// Gets or sets the value.
@@ -601,35 +445,35 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
                         switch (ch)
                         {
                             case Chars.LF:
-                                s.Append("\\n");
+                                s.Append(@"\n");
                                 break;
 
                             case Chars.CR:
-                                s.Append("\\r");
+                                s.Append(@"\r");
                                 break;
 
                             case Chars.HT:
-                                s.Append("\\t");
+                                s.Append(@"\t");
                                 break;
 
                             case Chars.BS:
-                                s.Append("\\b");
+                                s.Append(@"\b");
                                 break;
 
                             case Chars.FF:
-                                s.Append("\\f");
+                                s.Append(@"\f");
                                 break;
 
                             case Chars.ParenLeft:
-                                s.Append("\\(");
+                                s.Append(@"\(");
                                 break;
 
                             case Chars.ParenRight:
-                                s.Append("\\)");
+                                s.Append(@"\)");
                                 break;
 
                             case Chars.BackSlash:
-                                s.Append("\\\\");
+                                s.Append(@"\\");
                                 break;
 
                             default:
@@ -651,18 +495,14 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
                     s.Append(')');
                     break;
 
-
                 case CStringType.HexString:
                     throw new NotImplementedException();
-                //break;
 
                 case CStringType.UnicodeString:
                     throw new NotImplementedException();
-                //break;
 
                 case CStringType.UnicodeHexString:
                     throw new NotImplementedException();
-                //break;
 
                 case CStringType.Dictionary:
                     s.Append(_value);
@@ -689,36 +529,23 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
         /// <summary>
         /// Initializes a new instance of the <see cref="CName"/> class.
         /// </summary>
-        public CName()
-        {
-            _name = "/";
-        }
+        public CName() => _name = "/";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CName"/> class.
         /// </summary>
         /// <param name="name">The name.</param>
-        public CName(string name)
-        {
-            Name = name;
-        }
+        public CName(string name) => Name = name;
 
         /// <summary>
         /// Creates a new object that is a copy of the current instance.
         /// </summary>
-        public new CName Clone()
-        {
-            return (CName)Copy();
-        }
+        public new CName Clone() => (CName)Copy();
 
-        /// <summary>
-        /// Implements the copy mechanism of this class.
-        /// </summary>
-        protected override CObject Copy()
-        {
-            CObject obj = base.Copy();
-            return obj;
-        }
+        ///// <summary>
+        ///// Implements the copy mechanism of this class.
+        ///// </summary>
+        //protected override CObject Copy() => base.Copy();
 
         /// <summary>
         /// Gets or sets the name. Names must start with a slash.
@@ -731,7 +558,7 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
                 if (String.IsNullOrEmpty(value))
                     throw new ArgumentNullException(nameof(value));
                 if (value[0] != '/')
-                    throw new ArgumentException(PSSR.NameMustStartWithSlash);
+                    throw new ArgumentException(PsMsgs.NameMustStartWithSlash);
                 _name = value;
             }
         }
@@ -740,15 +567,10 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
         /// <summary>
         /// Returns a string that represents the current value.
         /// </summary>
-        public override string? ToString()
-        {
-            return _name;
-        }
+        public override string? ToString() => _name;
 
         internal override void WriteObject(ContentWriter writer)
-        {
-            writer.WriteRaw(ToString() + " ");
-        }
+            => writer.WriteRaw(ToString() + " ");
     }
 
     /// <summary>
@@ -760,72 +582,50 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
         /// <summary>
         /// Creates a new object that is a copy of the current instance.
         /// </summary>
-        public new CArray Clone()
-        {
-            return (CArray)Copy();
-        }
+        public new CArray Clone() => (CArray)Copy();
 
-        /// <summary>
-        /// Implements the copy mechanism of this class.
-        /// </summary>
-        protected override CObject Copy()
-        {
-            CObject obj = base.Copy();
-            return obj;
-        }
+        ///// <summary>
+        ///// Implements the copy mechanism of this class.
+        ///// </summary>
+        //protected override CObject Copy() => base.Copy();
 
         /// <summary>
         /// Returns a string that represents the current value.
         /// </summary>
         public override string ToString()
-        {
-            return "[" + base.ToString() + "]";
-        }
+            => "[" + base.ToString() + "]";
 
         internal override void WriteObject(ContentWriter writer)
-        {
-            writer.WriteRaw(ToString());
-        }
+            => writer.WriteRaw(ToString());
     }
 
     /// <summary>
     /// Represents an operator a PDF content stream.
     /// </summary>
-    [DebuggerDisplay("({Name}, operands={Operands.Count})")]
+    //[DebuggerDisplay("({Name}, operands={Operands.Count})")]
+    [DebuggerDisplay($"{{{nameof(DebuggerDisplay)},nq}}")]
+    [DebuggerTypeProxy(typeof(COperatorDebuggerDisplay))]
     public class COperator : CObject
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="COperator"/> class.
         /// </summary>
-        protected COperator()
-        {
-            _opCode = null!;
-        }
+        protected COperator() => _opCode = null!;
 
-        internal COperator(OpCode opcode)
-        {
-            _opCode = opcode;
-        }
+        internal COperator(OpCode opcode) => _opCode = opcode;
 
         /// <summary>
         /// Creates a new object that is a copy of the current instance.
         /// </summary>
-        public new COperator Clone()
-        {
-            return (COperator)Copy();
-        }
+        public new COperator Clone() => (COperator)Copy();
+
+        ///// <summary>
+        ///// Implements the copy mechanism of this class.
+        ///// </summary>
+        //protected override CObject Copy() => base.Copy();
 
         /// <summary>
-        /// Implements the copy mechanism of this class.
-        /// </summary>
-        protected override CObject Copy()
-        {
-            CObject obj = base.Copy();
-            return obj;
-        }
-
-        /// <summary>
-        /// Gets or sets the name of the operator
+        /// Gets or sets the name of the operator.
         /// </summary>
         /// <value>The name.</value>
         public virtual string Name => _opCode.Name;
@@ -834,7 +634,7 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
         /// Gets or sets the operands.
         /// </summary>
         /// <value>The operands.</value>
-        public CSequence Operands => _sequence ??= new CSequence();
+        public CSequence Operands => _sequence ??= [];
 
         CSequence? _sequence;
 
@@ -845,7 +645,6 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
 
         readonly OpCode _opCode;
 
-
         /// <summary>
         /// Returns a string that represents the current operator.
         /// </summary>
@@ -853,8 +652,22 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
         {
             if (_opCode.OpCodeName == OpCodeName.Dictionary)
                 return " ";
-
+#if true
             return Name;
+#else
+            var sb = new StringBuilder();
+            if (_sequence != null)
+            {
+                int count = _sequence.Count;
+                for (int idx = 0; idx < count; idx++)
+                {
+                    sb.Append(_sequence[idx]);
+                }
+            }
+            sb.Append(' ');
+            sb.Append(Name);
+            return sb.ToString();
+#endif
         }
 
         internal override void WriteObject(ContentWriter writer)
@@ -864,11 +677,55 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
                 int count = _sequence.Count;
                 for (int idx = 0; idx < count; idx++)
                 {
-                    // ReSharper disable once PossibleNullReferenceException because the loop is not entered if _sequence is null
                     _sequence[idx].WriteObject(writer);
                 }
-                writer.WriteLineRaw(ToString());
             }
+            writer.WriteLineRaw(_opCode.OpCodeName == OpCodeName.Dictionary
+                    ? " "
+                    : Name);
+        }
+
+        #region Printing/Debugger display
+        /// <summary>Function returning string that will be used to display object’s value in debugger for this type of objects.</summary>
+        public static Func<COperator, string> debuggerDisplay { get; set; } = o => o.ToString(15);
+        string DebuggerDisplay => debuggerDisplay(this);
+
+        /// <summary>Prints longer version of string including name, operands list and operator description.</summary>
+        /// <param name="maxOperandsStringLength">Maximal number of characters in operands portion of the string that could be displayed.
+        /// If printing all operands would require greater number of characters, a string in form like "15 operands" will be put in the result instead.</param>
+        public string ToString(int maxOperandsStringLength)
+        {
+            if (maxOperandsStringLength < 1)
+                return ToString();
+
+            const string sep = ", ";
+            var operands = "";
+            foreach (var op in Operands)
+            {
+                var os = op + sep; // This should be optimized and size should be checked before converting to string, I guess some objects may be really long...
+                operands += os;
+                if (operands.Length > maxOperandsStringLength + sep.Length)
+                {
+                    operands = Operands.Count + " operands" + sep;
+                    break;
+                }
+            }
+            if (operands.Length > 0) operands = operands.Substring(0, operands.Length - sep.Length);
+
+            return $"{Name,-4}({operands})  # {OpCode.Description}";
+        }
+        #endregion
+
+        internal class COperatorDebuggerDisplay(COperator o)
+        {
+            public string Name => $"{o.Name} - {o.OpCode.Description}";
+
+            public string Postscript => o.OpCode.Postscript ?? "<none>";
+
+            public OpCodeFlags Flags => o.OpCode.Flags;
+
+            [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+            public CObject[] Operands => o.Operands.ToArray();
         }
     }
 }

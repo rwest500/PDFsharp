@@ -1,4 +1,4 @@
-// MigraDoc - Creating Documents on the Fly
+﻿// MigraDoc - Creating Documents on the Fly
 // See the LICENSE file in the solution root for more information.
 
 using MigraDoc.DocumentObjectModel.Fields;
@@ -30,7 +30,7 @@ namespace MigraDoc.DocumentObjectModel
         /// <summary>
         /// Gets a ParagraphElement by its index.
         /// </summary>
-        public new DocumentObject? this[int index] => base[index]; // BUG???
+        public new DocumentObject? this[int index] => base[index];
 
         /// <summary>
         /// Creates a deep copy of this object.
@@ -43,13 +43,12 @@ namespace MigraDoc.DocumentObjectModel
         /// The function returns the last text object that was created.
         /// </summary>
         /// <param name="text">Contents of the new Text objects.</param>
-        /// <returns>Returns a new Text object.</returns>
+        /// <returns>Returns a new Text object with the last element of text that was added.</returns>
         public Text AddText(string text)
         {
             if (text == null)
                 throw new ArgumentNullException(nameof(text));
-#if true
-            Text txt = null!;
+            Text result = default!;
             string[] lines = text.Split('\n');
             int lineCount = lines.Length;
             for (int line = 0; line < lineCount; line++)
@@ -60,8 +59,7 @@ namespace MigraDoc.DocumentObjectModel
                 {
                     if (tabParts[idx].Length != 0)
                     {
-                        txt = new Text(tabParts[idx]);
-                        Add(txt);
+                        Add(result = new(tabParts[idx]));
                     }
                     if (idx < count - 1)
                         AddTab();
@@ -69,13 +67,7 @@ namespace MigraDoc.DocumentObjectModel
                 if (line < lineCount - 1)
                     AddLineBreak();
             }
-            return txt; // BUG return value does not make much sense to me.
-#else
-            Text txt = new Text();
-            txt.Content = text;
-            Add(txt);
-            return txt;
-#endif
+            return result;
         }
 
         /// <summary>
@@ -283,7 +275,7 @@ namespace MigraDoc.DocumentObjectModel
         /// Adds a new Hyperlink of Type "ExternalBookmark", i.e. the target is a Bookmark in an external PDF Document.
         /// </summary>
         /// <param name="filename">The path to the target document.</param>
-        /// <param name="bookmarkName">The Named Destination's name in the target document.</param>
+        /// <param name="bookmarkName">The Named Destination’s name in the target document.</param>
         /// <param name="newWindow">Defines if the HyperlinkType ExternalBookmark shall be opened in a new window.
         /// If not set, the viewer application should behave in accordance with the current user preference.</param>
         public Hyperlink AddHyperlink(string filename, string bookmarkName, HyperlinkTargetWindow newWindow = HyperlinkTargetWindow.UserPreference)
@@ -310,24 +302,24 @@ namespace MigraDoc.DocumentObjectModel
         /// <param name="newWindow">Defines if the HyperlinkType ExternalBookmark shall be opened in a new window.
         /// If not set, the viewer application should behave in accordance with the current user preference.</param>
         public Hyperlink AddHyperlinkToEmbeddedDocument(string destinationPath, HyperlinkTargetWindow newWindow = HyperlinkTargetWindow.UserPreference) 
-            => AddHyperlinkToEmbeddedDocument(null, destinationPath, newWindow);
+            => AddHyperlinkToEmbeddedDocument("", destinationPath, newWindow);
 
         /// <summary>
         /// Adds a new Hyperlink of Type "EmbeddedDocument".
         /// The target is a Bookmark in an embedded Document in an external PDF Document.
         /// </summary>
-        /// <param name="filename">The path to the target document.</param>
+        /// <param name="filename">The path to the target document. Can be empty if target is an embedded document in the current document.</param>
         /// <param name="destinationPath">The path to the named destination through the embedded documents in the target document.
         /// The path is separated by '\' and the last segment is the name of the named destination.
         /// The other segments describe the route from the root document to the embedded document.
         /// Each segment name refers to a child with this name in the EmbeddedFiles name dictionary.</param>
         /// <param name="newWindow">Defines if the HyperlinkType ExternalBookmark shall be opened in a new window.
         /// If not set, the viewer application should behave in accordance with the current user preference.</param>
-        public Hyperlink AddHyperlinkToEmbeddedDocument(string? filename, string destinationPath, HyperlinkTargetWindow newWindow = HyperlinkTargetWindow.UserPreference)
-        { // BUG "filename" nullable?
+        public Hyperlink AddHyperlinkToEmbeddedDocument(string filename, string destinationPath, HyperlinkTargetWindow newWindow = HyperlinkTargetWindow.UserPreference)
+        {
             var hyperlink = new Hyperlink
             {
-                Name = filename ?? "",
+                Name = filename,
                 BookmarkName = destinationPath,
                 NewWindow = newWindow,
                 Type = HyperlinkType.EmbeddedDocument
@@ -491,9 +483,9 @@ namespace MigraDoc.DocumentObjectModel
         internal override void Serialize(Serializer serializer)
         {
             int count = Count;
-            for (int index = 0; index < count; ++index)
+            for (int index = 0; index < count; index++)
             {
-                DocumentObject element = this[index]!; // BUG??? "!" added.
+                DocumentObject element = this[index]!;
                 element.Serialize(serializer);
             }
         }

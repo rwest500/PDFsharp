@@ -4,7 +4,6 @@
 #define VARIANT1  // Walrod, Battlestar, X-Files
 #define VARIANT2_  // Walrod, Battlestar, X-Files
 
-
 #define TIMES_NEW_ROMAN_  // Times New Roman
 #define SEGOE_UI  // Segoe UI
 #define SEGOE_UI_2_  // Segoe UI via platform API
@@ -33,7 +32,7 @@ using GdiFont = System.Drawing.Font;
 using System.Windows;
 using System.Windows.Media;
 #endif
-#if UWP
+#if WUI
 using Windows.UI.Xaml.Media;
 #endif
 using PdfSharp.Drawing;
@@ -71,7 +70,7 @@ namespace PdfSharp.Snippets.Font
         {
             XPoint pos;
 
-#if true || CORE || GDI || WPF || UWP
+#if true || CORE || GDI || WPF || WUI
             var fntRegular = new XFont(FamilyName, EmSize, XFontStyleEx.Regular, _fontOptions);
             var fntBold = new XFont(FamilyName, EmSize, XFontStyleEx.Bold, _fontOptions);
             var fntItalic = new XFont(FamilyName, EmSize, XFontStyleEx.Italic, _fontOptions);
@@ -135,7 +134,6 @@ namespace PdfSharp.Snippets.Font
             }
             EndBox(gfx);
 #endif
-
 
 #if BOX3
             BeginBox(gfx, 3, BoxOptions.Tile, "Typefaces of " + FamilyName);
@@ -274,9 +272,9 @@ namespace PdfSharp.Snippets.Font
 
         public override void RenderSnippet(XGraphics gfx)
         {
-#if CORE || GDI || UWP
+#if CORE || GDI || WUI
 #if TIMES_NEW_ROMAN
-#if !UWP
+#if !WUI
             var times = new FontFamily("Times New Roman");
 #else
             var times = "Times New Roman";
@@ -292,7 +290,7 @@ namespace PdfSharp.Snippets.Font
             var timesBoldItalic2 = new XFont(times, 42, XFontStyleEx.BoldItalic);
 #endif
 #if SEGOE_UI
-#if !UWP && false
+#if !WUI && false
             var segoe = new FontFamily("Segoe UI");
 #else
             var segoe = "Segoe UI";
@@ -526,8 +524,8 @@ namespace PdfSharp.Snippets.Font
             var families = System.Windows.Media.Fonts.SystemFontFamilies;
             var typefaces = System.Windows.Media.Fonts.SystemTypefaces;
             //FontFamily; Typeface
-            GetType();
-//#else
+            //_ = typeof(int);
+            //#else
             var segoeUI = new FontFamily("Segoe UI");
             //var segoeUISemilight = new FontFamily("Segoe UI Semilight");
             var segoeCondensed = new FontFamily("Segoe");
@@ -606,7 +604,6 @@ namespace PdfSharp.Snippets.Font
             }
             EndBox(gfx);
 #endif
-
 
 #if BOX3
             BeginBox(gfx, 3, BoxOptions.Tile, "semibold - bold - black");
@@ -720,8 +717,6 @@ namespace PdfSharp.Snippets.Font
 #else
         readonly XPdfFontOptions _fontOptions = new XPdfFontOptions(PdfFontEncoding.Unicode);
 #endif
-
-
         public PrivateFontCollectionSnippet()
         {
             //NoText = true;
@@ -735,13 +730,13 @@ namespace PdfSharp.Snippets.Font
             // No PrivateFontCollection - use font resolver.
 #endif
 
-#if GDI
+#if GDI_
             var assembly = Assembly.GetExecutingAssembly();
             XPrivateFontCollection.Add(assembly.GetManifestResourceStream("PdfSharp.Features.Fonts.xfiles.ttf")!);
             XPrivateFontCollection.Add(assembly.GetManifestResourceStream("PdfSharp.Features.Fonts.oblivious.ttf")!);
 #endif
 
-#if WPF
+#if WPF_
             var uri = new Uri("pack://application:,,,/");
             XPrivateFontCollection.Add(uri, "./Fonts/#X-Files");
             XPrivateFontCollection.Add(uri, "./Fonts/#Oblivious font");
@@ -838,7 +833,7 @@ namespace PdfSharp.Snippets.Font
 
         static FrutigerFontsSnippet()
         {
-#if GDI
+#if GDI_
             XPrivateFontCollection.Add(Assembly.GetExecutingAssembly().GetManifestResourceStream("PdfSharp.Features.Fonts.walrod.ttf")!);
             XPrivateFontCollection.Add(Assembly.GetExecutingAssembly().GetManifestResourceStream("PdfSharp.Features.Fonts.battlest.ttf")!);
             XPrivateFontCollection.Add(Assembly.GetExecutingAssembly().GetManifestResourceStream("PdfSharp.Features.Fonts.xfiles.ttf")!);
@@ -846,7 +841,7 @@ namespace PdfSharp.Snippets.Font
 
 #if WPF
             Uri uriPackApplication = new Uri("pack://application:,,,/");
-#if FRUTIGER_VIA_WPF_FONTFAMILY
+#if FRUTIGER_VIA_WPF_FONTFAMILY_
             // We have 'Frutiger' and 'Frutiger,bold'.
             XPrivateFontCollection.Add(uriPackApplication, "./Fonts/Frutiger/#Frutiger");
             XPrivateFontCollection.Add(uriPackApplication, "./Fonts/Frutiger/#FrutigerLight");
@@ -1020,15 +1015,15 @@ namespace PdfSharp.Snippets.Font
 
         static HelveticaNeueFontsSnippet()
         {
-#if GDI
+#if GDI_
             XPrivateFontCollection.Add(Assembly.GetExecutingAssembly().GetManifestResourceStream("PdfSharp.Features.Fonts.walrod.ttf")!);
             XPrivateFontCollection.Add(Assembly.GetExecutingAssembly().GetManifestResourceStream("PdfSharp.Features.Fonts.battlest.ttf")!);
             XPrivateFontCollection.Add(Assembly.GetExecutingAssembly().GetManifestResourceStream("PdfSharp.Features.Fonts.xfiles.ttf")!);
 #endif
 
-#if WPF
+#if WPF_
             Uri uriPackApplication = new Uri("pack://application:,,,/");
-#if true //FRUTIGER_VIA_WPF_FONTFAMILY
+#if true_ //FRUTIGER_VIA_WPF_FONTFAMILY
             // We have 'Helvetica Neue', 'Helvetica Neue Light', and 'Helvetica Neue,bold'.
             XPrivateFontCollection.Add(uriPackApplication, "./Fonts/HelveticaNeue/#Helvetica Neue");
             XPrivateFontCollection.Add(uriPackApplication, "./Fonts/HelveticaNeue/#Helvetica Neue Bold");

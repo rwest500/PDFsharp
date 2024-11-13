@@ -66,7 +66,7 @@ namespace PdfSharp.Charting.Renderers
             // Calculate rects and positions.
             CalcLayout();
 
-            // Calculated remaining plot area, now it's safe to format.
+            // Calculated remaining plot area, now it’s safe to format.
             PlotAreaRenderer renderer = new AreaPlotAreaRenderer(_rendererParms);
             renderer.Format();
         }
@@ -118,7 +118,7 @@ namespace PdfSharp.Charting.Renderers
 
             var seriesColl = cri.Chart.SeriesCollection;
             cri.SeriesRendererInfos = new SeriesRendererInfo[seriesColl.Count];
-            for (int idx = 0; idx < seriesColl.Count; ++idx)
+            for (int idx = 0; idx < seriesColl.Count; idx++)
             {
                 var sri = new SeriesRendererInfo();
                 sri.Series = seriesColl[idx];
@@ -155,7 +155,7 @@ namespace PdfSharp.Charting.Renderers
                             pri.LineFormat = sri.LineFormat;
                             pri.FillFormat = sri.FillFormat;
                             if (point._lineFormat != null && !point._lineFormat.Color.IsEmpty)
-                                pri.LineFormat = new XPen(point._lineFormat.Color, point._lineFormat.Width);
+                                pri.LineFormat = new XPen(point._lineFormat.Color, point._lineFormat.Width.Point);
                             if (point._fillFormat != null && !point._fillFormat.Color.IsEmpty)
                                 pri.FillFormat = new XSolidBrush(point._fillFormat.Color);
                         }

@@ -1,4 +1,4 @@
-// MigraDoc - Creating Documents on the Fly
+﻿// MigraDoc - Creating Documents on the Fly
 // See the LICENSE file in the solution root for more information.
 
 using MigraDoc.DocumentObjectModel.Visitors;
@@ -111,7 +111,7 @@ namespace MigraDoc.DocumentObjectModel
         /// <summary>
         /// Adds a text phrase to the hyperlink.
         /// </summary>
-        public Text AddText(String text)
+        public Text AddText(string text)
         {
             return Elements.AddText(text);
         }
@@ -452,11 +452,11 @@ namespace MigraDoc.DocumentObjectModel
 
         /// <summary>
         /// If set to true, the Hyperlink shall look like the surrounding text without using the Hyperlink Style.
-        /// May be used for text references, e. g. in tables, which shall not be rendered as links. 
+        /// May be used for text references, e.g. in tables, which shall not be rendered as links. 
         /// </summary>
         public bool NoHyperlinkStyle
         {
-            // This Property is not part of Word's Automation Model. With this property Hyperlinks can be used without implicitly setting the Hyperlink style.
+            // This Property is not part of Word’s Automation Model. With this property Hyperlinks can be used without implicitly setting the Hyperlink style.
             // This way they occur like linked cross references in Word, which are not implemented as an own DocumentObject type in MigraDoc.
             get => Values.NoHyperlinkStyle ?? false;
             set => Values.NoHyperlinkStyle = value;
@@ -581,14 +581,14 @@ namespace MigraDoc.DocumentObjectModel
             if (Type is HyperlinkType.ExternalBookmark or HyperlinkType.File or HyperlinkType.Url)
             {
                 if (String.IsNullOrEmpty(Values.Filename))
-                    throw new InvalidOperationException(DomSR.MissingObligatoryProperty("Filename", $"Hyperlink {Type.ToString()}"));
+                    throw new InvalidOperationException(MdDomMsgs.MissingObligatoryProperty(nameof(Filename), $"Hyperlink {Type.ToString()}").Message);
 
                 str += " Filename = \"" + Filename.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
             }
             if (Type is HyperlinkType.ExternalBookmark or HyperlinkType.Bookmark or HyperlinkType.EmbeddedDocument)
             {
                 if (String.IsNullOrEmpty(Values.BookmarkName))
-                    throw new InvalidOperationException(DomSR.MissingObligatoryProperty("BookmarkName", $"Hyperlink {Type.ToString()}"));
+                    throw new InvalidOperationException(MdDomMsgs.MissingObligatoryProperty(nameof(BookmarkName), $"Hyperlink {Type.ToString()}").Message);
 
                 str += " BookmarkName = \"" + BookmarkName.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
             }
@@ -657,13 +657,9 @@ namespace MigraDoc.DocumentObjectModel
             /// Gets or sets the internal nullable implementation value of the enclosing document object property.
             /// See enclosing document object class for documentation of this property.
             /// </summary>
-            /// <summary>
-            /// Gets or sets the internal nullable implementation value of the enclosing document object property.
-            /// See enclosing document object class for documentation of this property.
-            /// </summary>
             public string? Name
             {
-                get => Owner.Name; 
+                get => Owner.Name;
                 set => Owner.Name = value ?? ""; // BUG??? "null" becomes "".
             }
 

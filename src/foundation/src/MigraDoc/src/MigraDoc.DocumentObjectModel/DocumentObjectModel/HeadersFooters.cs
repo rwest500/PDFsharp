@@ -29,7 +29,7 @@ namespace MigraDoc.DocumentObjectModel
         /// <summary>
         /// Creates a deep copy of this object.
         /// </summary>
-        public new HeadersFooters Clone() 
+        public new HeadersFooters Clone()
             => (HeadersFooters)DeepCopy();
 
         /// <summary>
@@ -63,8 +63,8 @@ namespace MigraDoc.DocumentObjectModel
         {
             get
             {
-                var sec = Parent as Section; // BUG??? Exception if parent is null?
-                //Section sec = (Section)Parent; // BUG??? Exception if parent is null?
+                // Return false if it has no parent.
+                var sec = Parent as Section;
                 return sec?.Values.Headers == this;
             }
         }
@@ -72,31 +72,38 @@ namespace MigraDoc.DocumentObjectModel
         /// <summary>
         /// Returns true if this collection contains footers, false otherwise.
         /// </summary>
-        public bool IsFooter => !IsHeader;
-
-        /// <summary>
-        /// Determines whether a particular header or footer exists.
-        /// </summary>
-        [Obsolete("Uses IsNull and should be avoided.")] // BUG???
-        public bool HasHeaderFooter(HeaderFooterIndex index)
+        public bool IsFooter // => !IsHeader; -> No, would be true if no parent.
         {
-            return !IsNull(index.ToString());
+            get
+            {
+                // Return false if it has no parent.
+                var sec = Parent as Section;
+                return sec?.Values.Footers == this;
+            }
         }
+
+        // #DELETE
+        ///// <summary>
+        ///// Determines whether a particular header or footer exists.
+        ///// </summary>
+        //[Obsolete("Uses IsNull and should be avoided.")] // BUG???
+        //public bool HasHeaderFooter(HeaderFooterIndex index)
+        //{
+        //    return !IsNull(index.ToString());
+        //}
 
         /// <summary>
         /// Determines whether a particular header or footer exists.
         /// </summary>
         public bool HasHeaderFooter(HeaderFooter? item)
-        {
-            return item is not null && !item.IsNull();
-        }
+            => item is not null && !item.IsNull();
 
         /// <summary>
         /// Gets or sets the even page HeaderFooter of the HeadersFooters object.
         /// </summary>
         public HeaderFooter EvenPage
         {
-            get => Values.EvenPage ??= new HeaderFooter(this);
+            get => Values.EvenPage ??= new(this);
             set
             {
                 SetParent(value);
@@ -109,7 +116,7 @@ namespace MigraDoc.DocumentObjectModel
         /// </summary>
         public HeaderFooter FirstPage
         {
-            get => Values.FirstPage ??= new HeaderFooter(this);
+            get => Values.FirstPage ??= new(this);
             set
             {
                 SetParent(value);

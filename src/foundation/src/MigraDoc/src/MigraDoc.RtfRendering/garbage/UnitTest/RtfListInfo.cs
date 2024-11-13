@@ -1,5 +1,7 @@
+// MigraDoc - Creating Documents on the Fly
+// See the LICENSE file in the solution root for more information.
+
 using System;
-using System.IO;
 using MigraDoc.DocumentObjectModel;
 using MigraDoc.DocumentObjectModel.IO;
 
@@ -37,7 +39,6 @@ namespace MigraDoc.RtfRendering.UnitTest
 //      par.Style = "TestStyle1";
       par.Format.ListInfo.NumberPosition = 2;
 
-
       par = sec.AddParagraph("Paragraph 2");
       par.Format.ListInfo.ListType = ListType.BulletList3;
       Image img1 = par.AddImage("logo.gif");
@@ -49,7 +50,6 @@ namespace MigraDoc.RtfRendering.UnitTest
       img1.PictureFormat.CropLeft = "-2cm";
       img1.FillFormat.Color = Color.PowderBlue;
       img1.LineFormat.Width = 2;
-
 
       par = sec.AddParagraph("Paragraph 3");
       par.AddLineBreak();
@@ -90,7 +90,7 @@ namespace MigraDoc.RtfRendering.UnitTest
       docRenderer.Render(doc, "RtfListInfo.txt", null);
       DdlWriter.WriteToFile(doc, "RtfListInfo.mdddl");
       System.IO.File.Copy("RtfListInfo.txt", "RtfListInfo.rtf", true);
-      System.Diagnostics.Process.Start("RtfListInfo.txt");
+      System.Diagnostics.Process.Sta/rt("RtfListInfo.txt");
     }
   }
 }

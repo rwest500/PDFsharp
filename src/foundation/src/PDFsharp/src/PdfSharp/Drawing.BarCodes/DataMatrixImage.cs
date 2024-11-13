@@ -7,7 +7,6 @@ using System.Drawing.Imaging;
 #endif
 #if WPF
 using System.Windows;
-using System.Windows.Media;
 #endif
 
 #nullable disable  // This code is a port of C++ code made by David in ~2003. We keep it untouched in the first instance.
@@ -19,62 +18,64 @@ namespace PdfSharp.Drawing.BarCodes
     /// </summary>
     class DataMatrixImage
     {
-        public static XImage GenerateMatrixImage(string text, string encoding, int rows, int columns)
+        public static XImage GenerateMatrixImage(string text, string encoding, int rows, int columns, XBrush brush)
         {
-            DataMatrixImage dataMatrixImage = new DataMatrixImage(text, encoding, rows, columns);
+            DataMatrixImage dataMatrixImage = new DataMatrixImage(text, encoding, rows, columns, brush);
             return dataMatrixImage.DrawMatrix();
         }
 
-        public DataMatrixImage(string text, string encoding, int rows, int columns)
+        public DataMatrixImage(string text, string encoding, int rows, int columns, XBrush brush)
         {
             _text = text;
             _encoding = encoding;
             _rows = rows;
             _columns = columns;
+            _brush = brush;
         }
 
         string _encoding;
         readonly string _text;
         readonly int _rows;
         readonly int _columns;
+        readonly XBrush _brush;
 
         /// <summary>
         /// Possible ECC200 Matrices.
         /// </summary>
-        static Ecc200Block[] ecc200Sizes =
-        {
-          new Ecc200Block( 10,  10, 10, 10,    3,   3,  5),    //
-          new Ecc200Block( 12,  12, 12, 12,    5,   5,  7),    //
-          new Ecc200Block(  8,  18,  8, 18,    5,   5,  7),    //
-          new Ecc200Block( 14,  14, 14, 14,    8,   8, 10),    //
-          new Ecc200Block(  8,  32,  8, 16,   10,  10, 11),    //
-          new Ecc200Block( 16,  16, 16, 16,   12,  12, 12),    //
-          new Ecc200Block( 12,  26, 12, 26,   16,  16, 14),    //
-          new Ecc200Block( 18,  18, 18, 18,   18,  18, 14),    //
-          new Ecc200Block( 20,  20, 20, 20,   22,  22, 18),    //
-          new Ecc200Block( 12,  36, 12, 18,   22,  22, 18),    //
-          new Ecc200Block( 22,  22, 22, 22,   30,  30, 20),    // Post
-          new Ecc200Block( 16,  36, 16, 18,   32,  32, 24),    //
-          new Ecc200Block( 24,  24, 24, 24,   36,  36, 24),    //
-          new Ecc200Block( 26,  26, 26, 26,   44,  44, 28),    // Post
-          new Ecc200Block( 16,  48, 16, 24,   49,  49, 28),    //
-          new Ecc200Block( 32,  32, 16, 16,   62,  62, 36),    //
-          new Ecc200Block( 36,  36, 18, 18,   86,  86, 42),    //
-          new Ecc200Block( 40,  40, 20, 20,  114, 114, 48),    //
-          new Ecc200Block( 44,  44, 22, 22,  144, 144, 56),    //
-          new Ecc200Block( 48,  48, 24, 24,  174, 174, 68),    //
-          new Ecc200Block( 52,  52, 26, 26,  204, 102, 42),    //
-          new Ecc200Block( 64,  64, 16, 16,  280, 140, 56),    //
-          new Ecc200Block( 72,  72, 18, 18,  368,  92, 36),    //
-          new Ecc200Block( 80,  80, 20, 20,  456, 114, 48),    //
-          new Ecc200Block( 88,  88, 22, 22,  576, 144, 56),    //
-          new Ecc200Block( 96,  96, 24, 24,  696, 174, 68),    //
-          new Ecc200Block(104, 104, 26, 26,  816, 136, 56),    //
-          new Ecc200Block(120, 120, 20, 20, 1050, 175, 68),    //
-          new Ecc200Block(132, 132, 22, 22, 1304, 163, 62),    //
-          new Ecc200Block(144, 144, 24, 24, 1558, 156, 62),    // 156*4+155*2
-          new Ecc200Block(  0,   0,  0,  0,    0,    0, 0)     // terminate
-        };
+        static readonly Ecc200Block[] ecc200Sizes =
+        [
+          new( 10,  10, 10, 10,    3,   3,  5),    //
+          new( 12,  12, 12, 12,    5,   5,  7),    //
+          new(  8,  18,  8, 18,    5,   5,  7),    //
+          new( 14,  14, 14, 14,    8,   8, 10),    //
+          new(  8,  32,  8, 16,   10,  10, 11),    //
+          new( 16,  16, 16, 16,   12,  12, 12),    //
+          new( 12,  26, 12, 26,   16,  16, 14),    //
+          new( 18,  18, 18, 18,   18,  18, 14),    //
+          new( 20,  20, 20, 20,   22,  22, 18),    //
+          new( 12,  36, 12, 18,   22,  22, 18),    //
+          new( 22,  22, 22, 22,   30,  30, 20),    // Post
+          new( 16,  36, 16, 18,   32,  32, 24),    //
+          new( 24,  24, 24, 24,   36,  36, 24),    //
+          new( 26,  26, 26, 26,   44,  44, 28),    // Post
+          new( 16,  48, 16, 24,   49,  49, 28),    //
+          new( 32,  32, 16, 16,   62,  62, 36),    //
+          new( 36,  36, 18, 18,   86,  86, 42),    //
+          new( 40,  40, 20, 20,  114, 114, 48),    //
+          new( 44,  44, 22, 22,  144, 144, 56),    //
+          new( 48,  48, 24, 24,  174, 174, 68),    //
+          new( 52,  52, 26, 26,  204, 102, 42),    //
+          new( 64,  64, 16, 16,  280, 140, 56),    //
+          new( 72,  72, 18, 18,  368,  92, 36),    //
+          new( 80,  80, 20, 20,  456, 114, 48),    //
+          new( 88,  88, 22, 22,  576, 144, 56),    //
+          new( 96,  96, 24, 24,  696, 174, 68),    //
+          new(104, 104, 26, 26,  816, 136, 56),    //
+          new(120, 120, 20, 20, 1050, 175, 68),    //
+          new(132, 132, 22, 22, 1304, 163, 62),    //
+          new(144, 144, 24, 24, 1558, 156, 62),    // 156*4+155*2
+          new(  0,   0,  0,  0,    0,    0, 0)     // terminate
+        ];
 
         public XImage DrawMatrix()
         {
@@ -229,9 +230,9 @@ namespace PdfSharp.Drawing.BarCodes
                                     output[p++] = (char)1;
                                     output[p++] = (char)30;
                                 }
-                                w = e.IndexOf(c, StringComparison.Ordinal) == -1 ? (char)0 : e[e.IndexOf(c, StringComparison.Ordinal)];
+                                w = e.IndexOf(c.ToString(), StringComparison.Ordinal) == -1 ? (char)0 : e[e.IndexOf(c.ToString(), StringComparison.Ordinal)];
                                 if (w != (char)0)
-                                    output[p++] = (char)((e.IndexOf(w, StringComparison.Ordinal) + 3) % 40);
+                                    output[p++] = (char)((e.IndexOf(w.ToString(), StringComparison.Ordinal) + 3) % 40);
                                 else
                                 {
                                     if (newenc == 'x')
@@ -246,7 +247,7 @@ namespace PdfSharp.Drawing.BarCodes
                                     }
                                     else
                                     {
-                                        w = s2.IndexOf(c, StringComparison.Ordinal) == -1 ? (char)0 : (char)s2.IndexOf(c, StringComparison.Ordinal);
+                                        w = s2.IndexOf(c.ToString(), StringComparison.Ordinal) == -1 ? (char)0 : (char)s2.IndexOf(c.ToString(), StringComparison.Ordinal);
                                         if (w != (char)0)
                                         {          // shift 2
                                             output[p++] = (char)1;
@@ -254,7 +255,7 @@ namespace PdfSharp.Drawing.BarCodes
                                         }
                                         else
                                         {
-                                            w = s3.IndexOf(c, StringComparison.Ordinal) == -1 ? (char)0 : (char)s3.IndexOf(c, StringComparison.Ordinal);
+                                            w = s3.IndexOf(c.ToString(), StringComparison.Ordinal) == -1 ? (char)0 : (char)s3.IndexOf(c.ToString(), StringComparison.Ordinal);
                                             if (w != (char)0)
                                             {
                                                 output[p++] = (char)2;
@@ -713,7 +714,7 @@ namespace PdfSharp.Drawing.BarCodes
                     for (int j = 0; j < columns; j++)
                     {
                         if (code[((rows - 1) - i) * columns + j] == (char)1)
-                            gfx.FillRectangle(System.Drawing.Brushes.Black, j * pixelSize, i * pixelSize, pixelSize, pixelSize);
+                            gfx.FillRectangle(_brush.RealizeGdiBrush()/*System.Drawing.Brushes.Black*/, j * pixelSize, i * pixelSize, pixelSize, pixelSize);
                     }
                 }
             }
@@ -725,7 +726,7 @@ namespace PdfSharp.Drawing.BarCodes
             // WPFHACK
             return null;
 #endif
-#if CORE || UWP
+#if CORE || WUI
             return null;
 #endif
         }

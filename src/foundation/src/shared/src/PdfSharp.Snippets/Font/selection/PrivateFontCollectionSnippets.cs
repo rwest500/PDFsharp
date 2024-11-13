@@ -60,14 +60,14 @@ namespace PdfSharp.Snippets.Font
 
 #if true
             // There is one problem with Arial and one problem with Tahoma.
-            // Maybe it's the same bug, but showing two different effects.
+            // Maybe it’s the same bug, but showing two different effects.
             // Add Arial and Tahoma from the Fonts directory to the private font collection.
 #if true
             // Register regular first.
-            string[] fonts = {
-                                "arial.ttf", "arialbd.ttf",
-                                "TAHOMA.ttf", "TAHOMABD.ttf"
-                             };
+            string[] fonts =
+            [
+                "arial.ttf", "arialbd.ttf", "TAHOMA.ttf", "TAHOMABD.ttf"
+            ];
 #else
             // Register bold first.
             // BOX3 causes an exception if bold fonts are loaded before regular fonts.
@@ -85,7 +85,7 @@ namespace PdfSharp.Snippets.Font
                 string path = Path.Combine(windir + @"\..\fonts\", font);
                 using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read))
                 {
-                    XPrivateFontCollection.Add(stream);
+                    //XPrivateFontCollection.Add(stream);
                 }
             }
             Debug.WriteLine(FontsDevHelper.GetFontCachesState());
@@ -164,7 +164,6 @@ namespace PdfSharp.Snippets.Font
             EndBox(gfx);
 #endif
 
-
 #if BOX3
             BeginBox(gfx, 3, BoxOptions.Tile, "Native typefaces of " + FamilyNameT);
             {
@@ -211,22 +210,22 @@ namespace PdfSharp.Snippets.Font
 
                 {
                     var fntBold = new XFont(FamilyNameT, EmSize, XFontStyleEx.Bold, _fontOptions);
-                    XUnit descent = GetDescent(fntBold);
-                    XUnit singleLineSpace = fntBold.GetHeight();
+                    double descent = GetDescent(fntBold);
+                    double singleLineSpace = fntBold.GetHeight();
                     //sizeBold = gfx.MeasureString(text, fntBold);
                 }
 
                 {
                     var fntRegular = new XFont(FamilyNameT, EmSize, XFontStyleEx.Regular, _fontOptions);
-                    XUnit descent = GetDescent(fntRegular);
-                    XUnit singleLineSpace = fntRegular.GetHeight();
+                    double descent = GetDescent(fntRegular);
+                    double singleLineSpace = fntRegular.GetHeight();
                     //sizeRegular = gfx.MeasureString(text, fntRegular);
                 }
 
                 {
                     var fntBold = new XFont(FamilyNameT, EmSize, XFontStyleEx.Bold, _fontOptions);
-                    //XUnit descent = GetDescent(fntBold);
-                    //XUnit singleLineSpace = fntBold.GetHeight();
+                    //double descent = GetDescent(fntBold);
+                    //double singleLineSpace = fntBold.GetHeight();
                     gfx.MeasureString("De", fntBold);
                     gfx.MeasureString("do", fntBold);
                     gfx.MeasureString("do", fntBold);
@@ -235,8 +234,8 @@ namespace PdfSharp.Snippets.Font
 
                 {
                     var fntRegular = new XFont(FamilyNameT, EmSize, XFontStyleEx.Regular, _fontOptions);
-                    //XUnit descent = GetDescent(fntRegular);
-                    //XUnit singleLineSpace = fntRegular.GetHeight();
+                    //double descent = GetDescent(fntRegular);
+                    //double singleLineSpace = fntRegular.GetHeight();
                     gfx.MeasureString("De", fntRegular);
                     gfx.MeasureString("do", fntRegular);
                     gfx.MeasureString("do", fntRegular);
@@ -365,13 +364,12 @@ namespace PdfSharp.Snippets.Font
 
 #endif
         }
-        internal static XUnit GetDescent(XFont font)
+        internal static double GetDescent(XFont font)
         {
-            XUnit descent = font.Metrics.Descent;
+            double descent = font.Metrics.Descent;
             descent *= font.Size;
             descent /= font.FontFamily.GetEmHeight(font.Style);
             return descent;
         }
     }
-
 }

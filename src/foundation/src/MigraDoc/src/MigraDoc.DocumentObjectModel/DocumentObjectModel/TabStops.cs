@@ -1,5 +1,7 @@
-// MigraDoc - Creating Documents on the Fly
+﻿// MigraDoc - Creating Documents on the Fly
 // See the LICENSE file in the solution root for more information.
+
+using System.Collections;
 
 namespace MigraDoc.DocumentObjectModel
 {
@@ -38,16 +40,14 @@ namespace MigraDoc.DocumentObjectModel
         /// <summary>
         /// Returns an enumerator that iterates through the tab stop collection.
         /// </summary>
-        public new IEnumerator<TabStop> GetEnumerator() 
-            => _elements.Cast<TabStop>().GetEnumerator();
+        public new IEnumerator<TabStop> GetEnumerator()
+            => Elements.Cast<TabStop>().GetEnumerator();
 
         /// <summary>
         /// Gets a TabStop by its index.
         /// </summary>
         public new TabStop this[int index]
-#nullable disable
-            => (base[index] as TabStop)!; // HACK // BUG: May return null TODO: TabStop? Exception?
-#nullable restore
+                => (base[index] as TabStop)!; // HACK // BUG: May return null TODO: TabStop? Exception?
 
         /// <summary>
         /// Gets a TabStop by its position. Returns null if no matching tab stop can be found.
@@ -174,8 +174,8 @@ namespace MigraDoc.DocumentObjectModel
         /// is written to the DDL stream when serialized.
         /// Further setting TabsCleared to true can be used to suppress inheriting TabStops, if needed for a user interface
         /// allowing interactive editing and just-in-time calculation of the effective style based on inheritance.
-        /// This concept differs from Word's object model, which seems to retain a list of TabStop positions to remove,
-        /// if inherited TabStops are removed in Word's Style editing dialog.
+        /// This concept differs from Word’s object model, which seems to retain a list of TabStop positions to remove,
+        /// if inherited TabStops are removed in Word’s Style editing dialog.
         /// </summary>
         public bool TabsCleared { get; set; }
 

@@ -1,12 +1,13 @@
-// MigraDoc - Creating Documents on the Fly
+﻿// MigraDoc - Creating Documents on the Fly
 // See the LICENSE file in the solution root for more information.
 
 using System;
 using MigraDoc.DocumentObjectModel;
 using System.Globalization;
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using MigraDoc.DocumentObjectModel.Fields;
-using MigraDoc.RtfRendering.Resources;
+using MigraDoc.Logging;
 
 namespace MigraDoc.RtfRendering
 {
@@ -21,7 +22,6 @@ namespace MigraDoc.RtfRendering
             _dateField = (DateField)domObj;
         }
 
-
         /// <summary>
         /// Renders a date field to RTF.
         /// </summary>
@@ -33,82 +33,88 @@ namespace MigraDoc.RtfRendering
             EndField();
         }
 
+        string GetEffectiveFormat(DateField dateField, out DateTimeFormatInfo dtfInfo)
+        {
+            var culture = dateField.Document!.EffectiveCulture;
+            dtfInfo = culture.DateTimeFormat;
+
+            var format = dateField.Format;
+            if (!String.IsNullOrEmpty(format))
+                return format;
+
+            return dtfInfo.ShortDatePattern + " " + dtfInfo.LongTimePattern;
+        }
 
         /// <summary>
         /// Translates the date field format to RTF.
         /// </summary>
         void TranslateFormat()
         {
-            string domFrmt = _dateField.Format;
-            string rtfFrmt = domFrmt;
+            // The format is translated using the document’s actual culture.
+            var format = GetEffectiveFormat(_dateField, out var dtfInfo);
 
-            //The format is translated using the current culture.
-            DateTimeFormatInfo dtfInfo = CultureInfo.CurrentCulture.DateTimeFormat;
-            if (domFrmt == "")
-                rtfFrmt = dtfInfo.ShortDatePattern + " " + dtfInfo.LongTimePattern;
-
-            else if (domFrmt.Length == 1)
+            if (format.Length == 1)
             {
-                switch (domFrmt)
+                switch (format)
                 {
                     case "d":
-                        rtfFrmt = dtfInfo.ShortDatePattern;
+                        format = dtfInfo.ShortDatePattern;
                         break;
 
                     case "D":
-                        rtfFrmt = dtfInfo.LongDatePattern;
+                        format = dtfInfo.LongDatePattern;
                         break;
 
                     case "T":
-                        rtfFrmt = dtfInfo.LongTimePattern;
+                        format = dtfInfo.LongTimePattern;
                         break;
 
                     case "t":
-                        rtfFrmt = dtfInfo.ShortTimePattern;
+                        format = dtfInfo.ShortTimePattern;
                         break;
 
                     case "f":
-                        rtfFrmt = dtfInfo.LongDatePattern + " " + dtfInfo.ShortTimePattern;
+                        format = dtfInfo.LongDatePattern + " " + dtfInfo.ShortTimePattern;
                         break;
 
                     case "F":
-                        rtfFrmt = dtfInfo.FullDateTimePattern;
+                        format = dtfInfo.FullDateTimePattern;
                         break;
 
                     case "G":
-                        rtfFrmt = dtfInfo.ShortDatePattern + " " + dtfInfo.LongTimePattern;
+                        format = dtfInfo.ShortDatePattern + " " + dtfInfo.LongTimePattern;
                         break;
 
                     case "g":
-                        rtfFrmt = dtfInfo.ShortDatePattern + " " + dtfInfo.ShortTimePattern;
+                        format = dtfInfo.ShortDatePattern + " " + dtfInfo.ShortTimePattern;
                         break;
 
                     case "M":
                     case "m":
-                        rtfFrmt = dtfInfo.MonthDayPattern;
+                        format = dtfInfo.MonthDayPattern;
                         break;
 
                     case "R":
                     case "r":
-                        rtfFrmt = dtfInfo.RFC1123Pattern;
+                        format = dtfInfo.RFC1123Pattern;
                         break;
 
                     case "s":
-                        rtfFrmt = dtfInfo.SortableDateTimePattern;
+                        format = dtfInfo.SortableDateTimePattern;
                         break;
 
-                    //TODO: Output universal time for u und U.
+                    //TODO: Output universal time for u and U.
                     case "u":
-                        rtfFrmt = dtfInfo.UniversalSortableDateTimePattern;
+                        format = dtfInfo.UniversalSortableDateTimePattern;
                         break;
 
                     case "U":
-                        rtfFrmt = dtfInfo.FullDateTimePattern;
+                        format = dtfInfo.FullDateTimePattern;
                         break;
 
                     case "Y":
                     case "y":
-                        rtfFrmt = dtfInfo.YearMonthPattern;
+                        format = dtfInfo.YearMonthPattern;
                         break;
 
                     default:
@@ -119,7 +125,7 @@ namespace MigraDoc.RtfRendering
             bool isQuoted = false;
             bool isSingleQuoted = false;
             string rtfFrmt2 = "\\@ \"";
-            foreach (char c in rtfFrmt)
+            foreach (char c in format)
             {
                 switch (c)
                 {
@@ -133,8 +139,9 @@ namespace MigraDoc.RtfRendering
                     case '\'':
                         if (isEscaped)
                         {
-                            //Doesn't work in word format strings.
-                            Debug.WriteLine(Messages2.CharacterNotAllowedInDateFormat(c), "warning");
+                            //Doesn’t work in Word format strings.
+                            MigraDocLogHost.RtfRenderingLogger.LogWarning(MdRtfMsgs.CharacterNotAllowedInDateFormat(c).Message);
+                            //Debug.WriteLine(Messages2.CharacterNotAllowedInDateFormat(c), "warning");
                             isEscaped = false;
                         }
                         else if (!isSingleQuoted && !isQuoted)
@@ -214,9 +221,8 @@ namespace MigraDoc.RtfRendering
             _rtfWriter.WriteText(rtfFrmt2 + @""" \* MERGEFORMAT");
         }
 
-
         /// <summary>
-        /// Translates an unescaped character of a DateField's custom format to RTF.
+        /// Translates an unescaped character of a DateField’s custom format to RTF.
         /// </summary>
         string TranslateCustomFormatChar(char ch)
         {
@@ -241,7 +247,7 @@ namespace MigraDoc.RtfRendering
         /// </summary>
         protected override string GetFieldResult()
         {
-            return DateTime.Now.ToString(_dateField.Format);
+            return DateTime.Now.ToString(GetEffectiveFormat(_dateField, out _));
         }
 
         readonly DateField _dateField;

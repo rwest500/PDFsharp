@@ -6,6 +6,7 @@ using MigraDoc.DocumentObjectModel.Visitors;
 using MigraDoc.DocumentObjectModel.Shapes;
 using MigraDoc.DocumentObjectModel.Shapes.Charts;
 using static MigraDoc.DocumentObjectModel.Tables.Row;
+using System.Diagnostics;
 
 namespace MigraDoc.DocumentObjectModel.Tables
 {
@@ -44,9 +45,9 @@ namespace MigraDoc.DocumentObjectModel.Tables
         protected override object DeepCopy()
         {
             var cell = (Cell)base.DeepCopy();
-            // Remove all references to the original object hierarchy.
             cell.ResetCachedValues();
-            // TODO Call ResetCachedValues() for all classes where this is needed!
+
+            // Remove all references to the original object hierarchy.
             if (cell.Values.Format != null)
             {
                 cell.Values.Format = cell.Values.Format.Clone();
@@ -83,9 +84,8 @@ namespace MigraDoc.DocumentObjectModel.Tables
             // Lazy execution makes properties slow. Calculate frequently required property values in advance.
             if (Parent is Cells cells)
             {
-                _table = cells.Table;
-
                 _row = cells.Row;
+                _table = cells.Table;
             }
         }
 
@@ -175,7 +175,7 @@ namespace MigraDoc.DocumentObjectModel.Tables
                     return _clm;
                 if (/*_clm == null &&*/ Parent is Cells cells)
                 {
-                    for (int index = 0; index < cells.Count; ++index)
+                    for (int index = 0; index < cells.Count; index++)
                     {
                         //if (cells[index] == this)
                         //    _clm = Table.Columns[index];
@@ -216,7 +216,11 @@ namespace MigraDoc.DocumentObjectModel.Tables
         public ParagraphFormat Format
         {
             get => Values.Format ??= new(this);
-            set => Values.Format = value;
+            set
+            {
+                SetParent(value);
+                Values.Format = value;
+            }
         }
 
         /// <summary>
@@ -234,7 +238,11 @@ namespace MigraDoc.DocumentObjectModel.Tables
         public Borders Borders
         {
             get => Values.Borders ??= new(this);
-            set => Values.Borders = value;
+            set
+            {
+                SetParent(value);
+                Values.Borders = value;
+            }
         }
 
         /// <summary>
@@ -243,7 +251,11 @@ namespace MigraDoc.DocumentObjectModel.Tables
         public Shading Shading
         {
             get => Values.Shading ??= new(this);
-            set => Values.Shading = value;
+            set
+            {
+                SetParent(value);
+                Values.Shading = value;
+            }
         }
 
         /// <summary>

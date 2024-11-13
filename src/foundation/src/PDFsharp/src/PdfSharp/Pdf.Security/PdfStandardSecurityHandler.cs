@@ -1,4 +1,4 @@
-// PDFsharp - A .NET library for processing PDF
+﻿// PDFsharp - A .NET library for processing PDF
 // See the LICENSE file in the solution root for more information.
 
 using PdfSharp.Internal;
@@ -42,34 +42,42 @@ namespace PdfSharp.Pdf.Security
         }
 
         /// <summary>
-        /// Set the encryption according to the given parameter.
+        /// Set the encryption according to the given DefaultEncryption.
+        /// Allows setting the encryption automized using one single parameter.
         /// </summary>
-        public void SetEncryption(DefaultEncryption encryption)
+        [Obsolete("Use SetEncryption(PdfDefaultEncryption encryption) instead.")]
+        public void SetEncryption(DefaultEncryption encryption) => SetEncryption((PdfDefaultEncryption)encryption);
+
+        /// <summary>
+        /// Set the encryption according to the given PdfDefaultEncryption.
+        /// Allows setting the encryption automized using one single parameter.
+        /// </summary>
+        public void SetEncryption(PdfDefaultEncryption encryption)
         {
             switch (encryption)
             {
-                case DefaultEncryption.None:
+                case PdfDefaultEncryption.None:
                     SetEncryptionToNoneAndResetPasswords();
                     break;
-                case DefaultEncryption.Default:
+                case PdfDefaultEncryption.Default:
                     SetDefaultEncryption();
                     break;
-                case DefaultEncryption.V1:
+                case PdfDefaultEncryption.V1:
                     SetEncryptionToV1();
                     break;
-                case DefaultEncryption.V2With40Bits:
+                case PdfDefaultEncryption.V2With40Bits:
                     SetEncryptionToV2();
                     break;
-                case DefaultEncryption.V2With128Bits:
+                case PdfDefaultEncryption.V2With128Bits:
                     SetEncryptionToV2With128Bits();
                     break;
-                case DefaultEncryption.V4UsingRC4:
+                case PdfDefaultEncryption.V4UsingRC4:
                     SetEncryptionToV4UsingRC4();
                     break;
-                case DefaultEncryption.V4UsingAES:
+                case PdfDefaultEncryption.V4UsingAES:
                     SetEncryptionToV4UsingAES();
                     break;
-                case DefaultEncryption.V5:
+                case PdfDefaultEncryption.V5:
                     SetEncryptionToV5();
                     break;
             }
@@ -150,9 +158,9 @@ namespace PdfSharp.Pdf.Security
         /// <summary>
         /// Returns this SecurityHandler, if it shall be written to PDF (if an encryption is chosen).
         /// </summary>
-        internal PdfStandardSecurityHandler? GetIfEncryptionActive() => IsEncrypted ? this : null;
+        internal PdfStandardSecurityHandler? GetIfEncryptionIsActive() => IsEncrypted ? this : null;
 
-        internal bool IsEncrypted => _encryption != null;
+        bool IsEncrypted => _encryption != null;
 
         /// <summary>
         /// Sets the user password of the document.
@@ -184,13 +192,13 @@ namespace PdfSharp.Pdf.Security
         private string _ownerPassword = "";
 
         /// <summary>
-        /// Gets or sets the user access permission represented as an integer in the P key.
+        /// Gets or sets the user access permission represented as an unsigned 32-bit integer in the P key.
         /// </summary>
         internal PdfUserAccessPermission Permissions
         {
             get
             {
-                var permissions = (PdfUserAccessPermission)Elements.GetInteger(Keys.P);
+                var permissions = (PdfUserAccessPermission)Elements.GetUnsignedInteger(Keys.P);
                 if (permissions == 0)
                     permissions = PdfUserAccessPermission.PermitAll;
                 return permissions;
@@ -207,35 +215,16 @@ namespace PdfSharp.Pdf.Security
 
             // Correct permission bits.
             permissionsValue &= 0xfffffffc; // 1... 1111 1111 1100 - Bit 1 & 2 must be 0.
-            permissionsValue |= 0x000002c0; // 0... 0010 1100 0000 - Bit 7 & 8 must be 1. Also Bit 10 is no longer used and shall be always set to 1.
+#if true
+            //permissionsValue |= 0x000002c0; // 0... 0010 1100 0000 - Bit 7 & 8 must be 1. Also, Bit 10 is no longer used and shall be always set to 1.
+            // Top-most bit not correct, but can also be read with PDFsharp up to 6.1.0.
+            permissionsValue |= 0x7ffff2c0; // 01.. 1110 1100 0000 - Bit 7 & 8 & 13 through 32 must be 1. Also, Bit 10 is no longer used and shall be always set to 1.
+#else
+            // Include this later as files can not be read with PDFsharp up to 6.1.0.
+            permissionsValue |= 0xfffff2c0; // 1... 1110 1100 0000 - Bit 7 & 8 & 13 through 32 must be 1. Also, Bit 10 is no longer used and shall be always set to 1.
+#endif
 
             return permissionsValue;
-        }
-
-        /// <summary>
-        /// Decrypts an ObjectStream. ObjectStreams have to be decrypted before document decryption to allow the removing of the compression filter.
-        /// </summary>
-        internal void DecryptObjectStream(PdfObjectStream objectStream)
-        {
-            Debug.Assert(objectStream.Reference != null);
-
-            EnterObject(objectStream.ObjectID);
-
-            DecryptDictionary(objectStream, true);
-
-            LeaveObject();
-        }
-
-        /// <summary>
-        /// Decrypts the whole document (except ObjectStreams which are decrypted once when read in).
-        /// </summary>
-        internal void DecryptDocument()
-        {
-            foreach (var iref in _document.IrefTable.AllReferences)
-            {
-                if (!ReferenceEquals(iref.Value, this))
-                    DecryptObject(iref.Value);
-            }
         }
 
         /// <summary>
@@ -255,10 +244,41 @@ namespace PdfSharp.Pdf.Security
         }
 
         /// <summary>
+        /// Returns true, if pdfObject is a SecurityHandler used in any PdfTrailer.
+        /// </summary>
+        bool IsSecurityHandler(PdfObject pdfObject)
+        {
+            if (pdfObject is not PdfDictionary pdfDictionary)
+                return false;
+
+            // Incrementally updated PDFs contain multiple trailers. Check the SecurityHandler of each one.
+            var currentTrailer = _document.Trailer;
+            while (currentTrailer != null)
+            {
+                // Compare PdfReference, as currentTrailer.SecurityHandler contains the dictionary converted to PdfStandardSecurityHandler,
+                // while document.IrefTable.AllReferences still references the original PdfDictionary.
+                if (pdfDictionary.Reference == currentTrailer.SecurityHandler.Reference)
+                    return true;
+
+                currentTrailer = currentTrailer.PreviousTrailer;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Decrypts an indirect PdfObject.
         /// </summary>
-        void DecryptObject(PdfObject value)
+        public void DecryptObject(PdfObject value)
         {
+            // PdfStandardSecurityHandler itself is not encrypted.
+            if (IsSecurityHandler(value))
+                return;
+
+            // Cross-reference streams are not encrypted.
+            if (value is PdfCrossReferenceStream)
+                return;
+
             Debug.Assert(value.Reference != null);
 
             EnterObject(value.ObjectID);
@@ -282,12 +302,8 @@ namespace PdfSharp.Pdf.Security
         /// <summary>
         /// Decrypts a dictionary.
         /// </summary>
-        void DecryptDictionary(PdfDictionary dict, bool decryptObjectStream = false)
+        void DecryptDictionary(PdfDictionary dict)
         {
-            // ObjectStreams are decrypted once when read in. They and their contents must not be decrypted again on DecryptDocument.
-            if (!decryptObjectStream && dict.Elements.GetName("/Type") == "/ObjStm")
-                return;
-
             foreach (var item in dict.Elements)
             {
                 switch (item.Value)
@@ -347,9 +363,9 @@ namespace PdfSharp.Pdf.Security
             if (value.Length == 0)
                 return;
 
-            var bytes = value.EncryptionValue;
+            var bytes = value.GetRawBytes();
             DecryptString(ref bytes);
-            value.EncryptionValue = bytes;
+            value.SetRawBytes(bytes);
 
         }
 
@@ -361,9 +377,9 @@ namespace PdfSharp.Pdf.Security
             if (value.Length == 0)
                 return;
 
-            var bytes = value.EncryptionValue;
+            var bytes = value.GetRawBytes();
             DecryptString(ref bytes);
-            value.EncryptionValue = bytes;
+            value.SetRawBytes(bytes);
         }
 
         /// <summary>
@@ -456,8 +472,6 @@ namespace PdfSharp.Pdf.Security
             GetEncryption().DecryptForEnteredObject(ref bytes);
         }
 
-
-
         /// <summary>
         /// Does all necessary initialization for reading and decrypting the document with this security handler.
         /// </summary>
@@ -492,7 +506,7 @@ namespace PdfSharp.Pdf.Security
             Elements[PdfSecurityHandler.Keys.Filter] = new PdfName("/Standard");
 
             GetEncryption().PrepareEncryptionForSaving(UserPassword, OwnerPassword);
-            
+
             // Load and prepare crypt filters.
             LoadCryptFilters(false);
             if (_loadedCryptFilters is not null)
@@ -518,11 +532,11 @@ namespace PdfSharp.Pdf.Security
 
         internal override void WriteObject(PdfWriter writer)
         {
-            // Don't encrypt myself.
-            var securityHandler = writer.SecurityHandler;
-            writer.SecurityHandler = null;
+            // Don’t encrypt myself.
+            var effectiveSecurityHandler = writer.EffectiveSecurityHandler;
+            writer.EffectiveSecurityHandler = null;
             base.WriteObject(writer);
-            writer.SecurityHandler = securityHandler;
+            writer.EffectiveSecurityHandler = effectiveSecurityHandler;
         }
 
         /// <summary>
@@ -537,8 +551,7 @@ namespace PdfSharp.Pdf.Security
         }
         PdfEncryptionBase? _encryption;
 
-
-#region CryptFilters
+        #region CryptFilters
         bool VersionSupportsCryptFilter()
         {
             return GetEncryption().VersionValue is 4 or 5;
@@ -628,7 +641,7 @@ namespace PdfSharp.Pdf.Security
                 pdfCryptFilters = new PdfCryptFilters();
                 Elements.SetObject(PdfSecurityHandler.Keys.CF, pdfCryptFilters);
             }
-            
+
             // Add CryptFilter.
             pdfCryptFilters.AddCryptFilter(name, cryptFilter);
 
@@ -638,13 +651,13 @@ namespace PdfSharp.Pdf.Security
         }
 
         /// <summary>
-        /// Encrypts embedded file streams only by setting a crypt filter only in the security handler's EFF key and
-        /// setting the crypt filter's AuthEvent Key to /EFOpen, in order authenticate embedded file streams when accessing the embedded file.
+        /// Encrypts embedded file streams only by setting a crypt filter only in the security handler’s EFF key and
+        /// setting the crypt filter’s AuthEvent Key to /EFOpen, in order authenticate embedded file streams when accessing the embedded file.
         /// </summary>
-        public void EncryptEmbeddedFilesOnly()
+        public void EncryptEmbeddedFileStreamsOnly()
         {
 #if true
-            throw TH.NotImplementedException_EncryptEmbeddedFilesOnlyCurrentlyShutOff();
+            throw TH.NotImplementedException_EncryptEmbeddedFileStreamsOnlyCurrentlyShutOff();
 #else
             // TODO: Find and fix error in order to produce files readable by common PDF readers. When done enable SecurityTests.Test_OnlyEmbeddedFileStreamEncrypted().
 
@@ -719,7 +732,7 @@ namespace PdfSharp.Pdf.Security
                 if (pdfCryptFilters?.GetCryptFilter(name) is null)
                     throw TH.ArgumentException_UnknownCryptFilterSetToDefault();
             }
-            
+
             Elements.SetName(key, name);
         }
 
@@ -735,7 +748,6 @@ namespace PdfSharp.Pdf.Security
                 _defaultCryptFilterEmbeddedFileStreams = null;
                 return;
             }
-
 
             _loadedCryptFilters = pdfCryptFilters.GetCryptFiltersAsDictionary();
             if (initializeCryptFilters)
@@ -761,7 +773,7 @@ namespace PdfSharp.Pdf.Security
 
             if (string.IsNullOrEmpty(cryptFilterName))
                 return @default;
-            
+
             var cryptFilter = _loadedCryptFilters?[cryptFilterName];
 
             if (cryptFilter is null)
@@ -769,7 +781,6 @@ namespace PdfSharp.Pdf.Security
 
             return cryptFilter;
         }
-
 
         /// <summary>
         /// Resets the explicitly set crypt filter of a dictionary.
@@ -779,7 +790,7 @@ namespace PdfSharp.Pdf.Security
             dictionary.Elements.ArrayOrSingleItem.Remove<PdfName>(PdfStream.Keys.Filter, CryptFilterConstants.FilterValue);
             dictionary.Elements.ArrayOrSingleItem.Remove(PdfStream.Keys.DecodeParms, CryptFilterConstants.DecodeParmsPredicate);
         }
-        
+
         void ResetCryptFilterEntriesInAllElements()
         {
             foreach (var iref in _document.IrefTable.AllReferences)
@@ -793,7 +804,7 @@ namespace PdfSharp.Pdf.Security
         }
 
         /// <summary>
-        /// Sets the dictionary's explicitly set crypt filter to the Identity crypt filter.
+        /// Sets the dictionary’s explicitly set crypt filter to the Identity crypt filter.
         /// </summary>
         public void SetIdentityCryptFilter(PdfDictionary dictionary)
         {
@@ -801,14 +812,14 @@ namespace PdfSharp.Pdf.Security
         }
 
         /// <summary>
-        /// Sets the dictionary's explicitly set crypt filter to the desired crypt filter.
+        /// Sets the dictionary’s explicitly set crypt filter to the desired crypt filter.
         /// </summary>
         public void SetCryptFilter(PdfDictionary dictionary, string cryptFilterName)
         {
             ResetCryptFilter(dictionary);
 
             EnsureCryptFiltersAreSupported();
-            
+
             if (PdfName.AddSlash(cryptFilterName) != CryptFilterConstants.IdentityFilterValue)
             {
                 var cryptFilters = (PdfCryptFilters?)Elements.GetValue(PdfSecurityHandler.Keys.CF);
@@ -830,6 +841,11 @@ namespace PdfSharp.Pdf.Security
         /// </summary>
         public CryptFilterBase? GetCryptFilter(PdfDictionary dictionary)
         {
+            // The cross-reference stream shall not be encrypted. See Reference PDF 2.0: 7.5.8.2  Cross-reference stream dictionary / Page 80.
+            var type = dictionary.Elements.GetName(PdfCrossReferenceStream.Keys.Type);
+            if (type == "/XRef")
+                return IdentityCryptFilter.Instance;
+
             // If a crypt filter is set for this PdfDictionary, try to return the desired crypt filter.
             var filters = dictionary.Elements.ArrayOrSingleItem.GetAll(PdfStream.Keys.Filter).ToList();
             // ReSharper disable once SuspiciousTypeConversion.Global
@@ -843,8 +859,8 @@ namespace PdfSharp.Pdf.Security
 
                 if (filterDecodeParms is PdfDictionary filterDecodeParmsDict)
                 {
-                    var typeValue = filterDecodeParmsDict.Elements.GetName(CryptFilterConstants.DecodeParmsTypeKey);
-                    if (typeValue == CryptFilterConstants.DecodeParmsTypeValue)
+                    var decodeParmsType = filterDecodeParmsDict.Elements.GetName(CryptFilterConstants.DecodeParmsTypeKey);
+                    if (decodeParmsType == CryptFilterConstants.DecodeParmsTypeValue)
                     {
                         var cryptFilterNameValue = filterDecodeParmsDict.Elements.GetName(CryptFilterConstants.DecodeParmsNameKey);
 
@@ -859,18 +875,20 @@ namespace PdfSharp.Pdf.Security
                     }
 
                 }
+                // Use IdentityCryptFilter (no encryption), if DecodeParms is not defined.
+                else
+                    return IdentityCryptFilter.Instance;
 
                 throw TH.InvalidOperationException_CryptFilterDecodeParmsNotInitializedCorrectly();
             }
 
             if (PdfEmbeddedFileStream.IsEmbeddedFile(dictionary))
                 return _defaultCryptFilterEmbeddedFileStreams;
-            
+
             // Otherwise return the default crypt filter for streams.
             return _defaultCryptFilterStreams;
         }
-#endregion CryptFilters
-
+        #endregion CryptFilters
 
         Dictionary<string, PdfCryptFilter>? _loadedCryptFilters;
         CryptFilterBase? _defaultCryptFilterStreams;
@@ -878,51 +896,53 @@ namespace PdfSharp.Pdf.Security
         CryptFilterBase? _defaultCryptFilterEmbeddedFileStreams;
 
         /// <summary>
-        /// Basic settings to initialize encryption with.
+        /// Typical settings to initialize encryption with.
+        /// With DefaultEncryption, the encryption can be set automized using PdfStandardSecurityHandler.SetPermission() with one single parameter.
         /// </summary>
+        [Obsolete("Use PdfDefaultEncryption instead.")]
         public enum DefaultEncryption
         {
             /// <summary>
             /// Do not encrypt the PDF file.
             /// </summary>
-            None,
+            None = PdfDefaultEncryption.None,
 
             /// <summary>
             /// Use V4UsingAES, the most recent encryption method not requiring PDF 2.0.
             /// </summary>
-            Default,
+            Default = PdfDefaultEncryption.Default,
 
             /// <summary>
             /// Encrypt with Version 1 (RC4 and a file encryption key length of 40 bits).
             /// </summary>
-            V1,
+            V1 = PdfDefaultEncryption.V1,
 
             /// <summary>
             /// Encrypt with Version 2 (RC4 and a file encryption key length of more than 40 bits, PDF 1.4) with a file encryption key length of 40 bits.
             /// </summary>
-            V2With40Bits,
+            V2With40Bits = PdfDefaultEncryption.V2With40Bits,
 
             /// <summary>
             /// Encrypt with Version 2 (RC4 and a file encryption key length of more than 40 bits, PDF 1.4) with a file encryption key length of 128 bits.
             /// This was the default encryption in PDFsharp 1.5.
             /// </summary>
-            V2With128Bits,
+            V2With128Bits = PdfDefaultEncryption.V2With128Bits,
 
             /// <summary>
             /// Encrypt with Version 4 (RC4 or AES and a file encryption key length of 128 bits using a crypt filter, PDF 1.5) using RC4.
             /// </summary>
             // ReSharper disable once InconsistentNaming
-            V4UsingRC4,
+            V4UsingRC4 = PdfDefaultEncryption.V4UsingRC4,
 
             /// <summary>
             /// Encrypt with Version 4 (RC4 or AES and a file encryption key length of 128 bits using a crypt filter, PDF 1.5) using AES (PDF 1.6).
             /// </summary>
-            V4UsingAES,
+            V4UsingAES = PdfDefaultEncryption.V4UsingAES,
 
             /// <summary>
             /// Encrypt with Version 5 (AES and a file encryption key length of 256 bits using a crypt filter, PDF 2.0).
             /// </summary>
-            V5
+            V5 = PdfDefaultEncryption.V5
         }
 
         static class CryptFilterConstants
@@ -942,7 +962,7 @@ namespace PdfSharp.Pdf.Security
             public const string StandardFilterName = "StdCF";
         }
 
-#region Keys
+        #region Keys
         /// <summary>
         /// Predefined keys of this dictionary.
         /// </summary>
@@ -1037,6 +1057,6 @@ namespace PdfSharp.Pdf.Security
         /// </summary>
         internal override DictionaryMeta Meta => Keys.Meta;
 
-#endregion
+        #endregion
     }
 }

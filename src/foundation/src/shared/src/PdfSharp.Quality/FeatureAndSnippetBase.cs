@@ -2,15 +2,18 @@
 // See the LICENSE file in the solution root for more information.
 
 using System.IO;
-//#if NET/FX_CORE || UWP || DNC10
+//#if NET/FX_CORE || WUI || DNC10
 //using System.Threading.Tasks;
 //using Windows.Foundation;
 //using Windows.Storage;
 //#endif
 #if CORE || GDI
+#if !NETSTANDARD2_0_OR_GREATER
 using System.Drawing.Imaging;
 #endif
+#endif
 using PdfSharp.Drawing;
+using PdfSharp.Events;
 using PdfSharp.Pdf;
 
 // ReSharper disable ConvertToAutoProperty
@@ -29,7 +32,7 @@ namespace PdfSharp.Quality
         { }
 
         /// <summary>
-        /// Specifies how to draw a fox on the a PDF page.
+        /// Specifies how to draw a box on the PDF page.
         /// </summary>
         protected enum BoxOptions
         {
@@ -82,12 +85,12 @@ namespace PdfSharp.Quality
         /// <summary>
         /// The width of the PDF page in millimeter.
         /// </summary>
-        public const double WidthInMillimeter = WidthInPoint * 25.4 / 72;
+        public const double WidthInMillimeter = WidthInPoint * 25.4 / 72;  // 127cm
 
         /// <summary>
         /// The height of the PDF page in millimeter.
         /// </summary>
-        public const double HeightInMillimeter = HeightInPoint * 25.4 / 72;
+        public const double HeightInMillimeter = HeightInPoint * 25.4 / 72;  // 169.3‾cm
 
         // ReSharper disable InconsistentNaming
         /// <summary>
@@ -147,7 +150,9 @@ namespace PdfSharp.Quality
         public void BeginPdfDocument()
         {
             var document = new PdfDocument();
-            document.Info.Author = "empira";
+            document.Info.Author = "PDFsharp team";
+            document.PageLayout = PdfPageLayout.SinglePage;
+            //document.PageMode = PdfPageMode.FullScreen;
 
             Document = document;
         }
@@ -160,6 +165,9 @@ namespace PdfSharp.Quality
             var stream = new MemoryStream();
             Document.Save(stream);
 
+            Page = null!;
+            XGraphics = null!;
+
             var bytes = stream.ToArray();
             PdfBytes = bytes;
         }
@@ -167,21 +175,54 @@ namespace PdfSharp.Quality
         /// <summary>
         /// Creates a new page in the current PDF document.
         /// </summary>
-        public void BeginPdfPage()
+        public XGraphics BeginPdfPage()
+        {
+            return BeginPdfPage(XUnit.FromPoint(WidthInPoint), XUnit.FromPoint(HeightInPoint), XGraphicsUnit.Presentation, XPageDirection.Downwards);
+#if true_
+            //# DELETE
+            //var page = Document.AddPage();
+
+            //page.Width = WidthInPoint;  // = XUnit.FromPresentation(WidthInPU);
+            //page.Height = HeightInPoint;  // = XUnit.FromPresentation(HeightInPU);
+
+            //// All drawing is done in presentation units (1/96 inch).
+            //var gfx = XGraphics.FromPdfPage(page, XGraphicsUnit.Presentation);
+            //// Draw a bounding box.
+            //var rect = new XRect(0.5, 0.5, WidthInPU - 1, HeightInPU - 1);
+            //gfx.DrawRectangle(XBrushes.WhiteSmoke, rect);
+
+            //Page = page;
+            //XGraphics = gfx;
+#endif
+        }
+
+        /// <summary>
+        /// Creates a new page in the current PDF document.
+        /// </summary>
+        public XGraphics BeginPdfPage(XUnit width, XUnit height, XGraphicsUnit graphicsUnit, XPageDirection pageDirection = XPageDirection.Downwards)
         {
             var page = Document.AddPage();
 
-            page.Width = WidthInPoint;  // = XUnit.FromPresentation(WidthInPU);
-            page.Height = HeightInPoint;  // = XUnit.FromPresentation(HeightInPU);
+            page.Width = width;  // = XUnit.FromPresentation(WidthInPU);
+            page.Height = height;  // = XUnit.FromPresentation(HeightInPU);
 
             // All drawing is done in presentation units (1/96 inch).
-            var gfx = XGraphics.FromPdfPage(page, XGraphicsUnit.Presentation);
-            // Draw a bounding box.
-            var rect = new XRect(0.5, 0.5, WidthInPU - 1, HeightInPU - 1);
+            var gfx = XGraphics.FromPdfPage(page, XGraphicsPdfPageOptions.Append, graphicsUnit, pageDirection);
+            // Draw a bounding box. BUG if graphics unit is not Presentation.
+
+            if (graphicsUnit != XGraphicsUnit.Point)
+            {
+                width.ConvertType(graphicsUnit);
+                height.ConvertType(graphicsUnit);
+            }
+
+            var rect = new XRect(0.5, 0.5, width.Presentation - 1, height.Presentation - 1);
             gfx.DrawRectangle(XBrushes.WhiteSmoke, rect);
 
             Page = page;
             XGraphics = gfx;
+
+            return gfx;
         }
 
         /// <summary>
@@ -189,7 +230,11 @@ namespace PdfSharp.Quality
         /// </summary>
         public void EndPdfPage()
         {
-            _page = null;
+            if (_page is not null)
+            {
+                _page.Close();
+                _page = null;
+            }
         }
 
         /// <summary>
@@ -200,15 +245,18 @@ namespace PdfSharp.Quality
             var document = new PdfDocument();
 
             var page = document.AddPage();
-            page.Width = WidthInPoint * 2;
-            page.Height = HeightInPoint;
+            page.Width = XUnit.FromPoint(WidthInPoint * 2);
+            page.Height = XUnit.FromPoint(HeightInPoint);
 
             var gfx = XGraphics.FromPdfPage(page);
 
-            var leftBox = new XRect(0, 0, page.Width / 2, page.Height);
+            var width = page.Width.Point;
+            var height = page.Height.Point;
+
+            var leftBox = new XRect(0, 0, width / 2, height);
             DrawPdfToBox(gfx, leftBox);
 
-            var rightBox = new XRect(page.Width / 2, 0, page.Width / 2, page.Height);
+            var rightBox = new XRect(width / 2, 0, width / 2, height);
             DrawImageToBox(gfx, rightBox);
 
             var stream = new MemoryStream();
@@ -226,23 +274,21 @@ namespace PdfSharp.Quality
             var document = new PdfDocument();
 
             var page = document.AddPage();
-            page.Width = WidthInPoint;
-            page.Height = HeightInPoint;
+            page.Width = XUnit.FromPoint(WidthInPoint);
+            page.Height = XUnit.FromPoint(HeightInPoint);
 
             var gfx = XGraphics.FromPdfPage(page);
 
-            var pageBox = new XRect(0, 0, page.Width, page.Height);
+            var pageBox = new XRect(0, 0, page.Width.Point, page.Height.Point);
             DrawPdfToBox(gfx, pageBox);
 
-
             page = document.AddPage();
-            page.Width = WidthInPoint;
-            page.Height = HeightInPoint;
+            page.Width = XUnit.FromPoint(WidthInPoint);
+            page.Height = XUnit.FromPoint(HeightInPoint);
 
             gfx = XGraphics.FromPdfPage(page);
 
             DrawImageToBox(gfx, pageBox);
-
 
             var stream = new MemoryStream();
             document.Save(stream);
@@ -286,61 +332,50 @@ namespace PdfSharp.Quality
         }
 
         /// <summary>
-        /// Saves the and show file.
+        /// Saves the bytes to PDF file and show file.
         /// </summary>
         /// <param name="sourceBytes">The source bytes.</param>
         /// <param name="filepath">The filepath.</param>
         /// <param name="startViewer">if set to <c>true</c> [start viewer].</param>
-        /// <returns></returns>
         /// <exception cref="System.ArgumentNullException">sourceBytes</exception>
         public string SaveAndShowFile(byte[]? sourceBytes, string filepath = "", bool startViewer = false)
         {
             if (sourceBytes is null)
                 throw new ArgumentNullException(nameof(sourceBytes));
 
-            filepath = CompleteFilePath(sourceBytes, filepath);
+            //filepath = CompleteFilePath(sourceBytes, filepath);
+            filepath = IOUtility.GetTempFullFileName(filepath, GetFileExtension(sourceBytes), true);
 
             // Save the PDF document...
             using var stream = File.Create(filepath);
-            stream.Write(sourceBytes, 0, sourceBytes.Length);
+            {
+                stream.Write(sourceBytes, 0, sourceBytes.Length);
+                // Stream must be closed here, otherwise it cannot be copied under Linux.
+                // To me, it is not clear what’s the difference with Windows.
+                stream.Close();
+            }
 
-#if true //GDI || WPF
-            // ... and start a viewer.
             if (startViewer)
-                Process.Start(new ProcessStartInfo(filepath) { UseShellExecute = true });
-#endif
+                PdfFileUtility.ShowDocument(filepath);
+
             return filepath;
         }
 
-        //#if UWP
-        //        public async void UwpSaveAndShowFile(byte[] sourceBytes, string filepath = "", bool startViewer = false)
-        //        {
-        //            filepath = CompleteFilePath(sourceBytes, filepath);
+        //string CompleteFilePath(byte[]? sourceBytes, string filepath)
+        //{
+        //    if (sourceBytes is null)
+        //        throw new ArgumentNullException(nameof(sourceBytes));
 
-        //            var localFolder = ApplicationData.Current.LocalFolder;
-        //            StorageFile file = await localFolder.CreateFileAsync(filepath, CreationCollisionOption.ReplaceExisting);
-        //            var stream = await file.OpenStreamForWriteAsync();
-        //            stream.Write(sourceBytes, 0, sourceBytes.Length);
-        //            stream.Flush();
-        //            stream.Dispose();
-        //        }
-        //#endif
+        //    // Add generated filename, if filepath is only a directory (doesn’t contain a file extension).
+        //    return String.IsNullOrEmpty(Path.GetExtension(filepath))
+        //        ? Path.Combine(filepath, GenerateFilename(sourceBytes))
+        //        : filepath;
+        //}
 
-        string CompleteFilePath(byte[]? sourceBytes, string filepath)
-        {
-            if (sourceBytes is null)
-                throw new ArgumentNullException(nameof(sourceBytes));
-
-            // Add generated filename, if filepath is only a directory (doesn't contain a file extension).
-            return String.IsNullOrEmpty(Path.GetExtension(filepath))
-                ? Path.Combine(filepath, GenerateFilename(sourceBytes))
-                : filepath;
-        }
-
-        string GenerateFilename(byte[] sourceBytes)
-        {
-            return $"{GetType().Name}-{PdfSharpTechnology}-tempfile.{GetFileExtension(sourceBytes)}";
-        }
+        //string GenerateFilename(byte[] sourceBytes)
+        //{
+        //    return $"{GetType().Name}-{PdfSharpTechnology}-tempfile.{GetFileExtension(sourceBytes)}";
+        //}
 
         string GetFileExtension(byte[] sourceBytes)
         {
@@ -359,6 +394,7 @@ namespace PdfSharp.Quality
         /// </summary>
         /// <param name="filepath">The filepath.</param>
         /// <param name="startViewer">if set to <c>true</c> [start viewer].</param>
+        [Obsolete("Use a XxxUtility class.")]
         public string SaveAndShowPdfDocument(string filepath, bool startViewer = false)
         {
             return SaveAndShowFile(PdfBytes, filepath, startViewer);
@@ -369,6 +405,7 @@ namespace PdfSharp.Quality
         /// </summary>
         /// <param name="filepath">The filepath.</param>
         /// <param name="startViewer">if set to <c>true</c> [start viewer].</param>
+        [Obsolete("Use a XxxUtility class.")]
         public string SaveAndShowPngImage(string filepath, bool startViewer = false)
         {
             return SaveAndShowFile(PngBytes, filepath, startViewer);
@@ -379,6 +416,7 @@ namespace PdfSharp.Quality
         /// </summary>
         /// <param name="filepath">The filepath.</param>
         /// <param name="startViewer">if set to <c>true</c> [start viewer].</param>
+        [Obsolete("Use a XxxUtility class.")]
         public string SaveAndShowComparisonDocument(string filepath, bool startViewer = false)
         {
             return SaveAndShowFile(ComparisonBytes, filepath, startViewer);
@@ -389,6 +427,7 @@ namespace PdfSharp.Quality
         /// </summary>
         /// <param name="stream">The stream.</param>
         /// <param name="path">The path.</param>
+        [Obsolete("Use a XxxUtility class.")]
         public void SaveStreamToFile(Stream stream, string path)
         {
             int length = (int)stream.Length;
@@ -398,7 +437,6 @@ namespace PdfSharp.Quality
             using var fs = new FileStream(path, FileMode.Create);
             fs.Write(bytes, 0, length);
         }
-
 
         /// <summary>
         /// Prepares new bitmap image for drawing.
@@ -415,7 +453,7 @@ namespace PdfSharp.Quality
             var image = new Bitmap(width, height);
 
             var gfx = Graphics.FromImage(image);
-            var xgfx = XGraphics.FromGraphics(gfx, new XSize(width, height), XGraphicsUnit.Presentation);
+            var xgfx = XGraphics.FromGraphics(gfx, new XSize(width, height), XGraphicsUnit.Presentation, new RenderEvents());
             //xgfx.DrawLine(XPens.Blue, 10, 10, 100, 100);
             xgfx.ScaleTransform(factor);
             XGraphics = xgfx;
@@ -473,6 +511,7 @@ namespace PdfSharp.Quality
 #if CORE
 #endif
 #if GDI
+
             var stream = new MemoryStream();
             _image.Save(stream, ImageFormat.Png);
 
@@ -500,7 +539,7 @@ namespace PdfSharp.Quality
 #if GDI
                 _gfx = null!;
 #endif
-                _pdfBytes = Array.Empty<byte>();
+                _pdfBytes = [];
             }
         }
         PdfDocument? _document;
@@ -567,7 +606,7 @@ namespace PdfSharp.Quality
             get => _pdfBytes;
             private set
             {
-                _pdfBytes = value ?? Array.Empty<byte>();
+                _pdfBytes = value ?? [];
                 _document = null;
 #if GDI
                 _gfx = null!;
@@ -575,7 +614,7 @@ namespace PdfSharp.Quality
                 _page = null;
             }
         }
-        byte[] _pdfBytes = Array.Empty<byte>();
+        byte[] _pdfBytes = [];
 
         /// <summary>
         /// Gets the bytes of a PNG image.
@@ -585,14 +624,14 @@ namespace PdfSharp.Quality
             get => _pngBytes;
             private set
             {
-                _pngBytes = Array.Empty<byte>();
+                _pngBytes = [];
 #if GDI
                 _gfx = null!;
                 _image = null!;
 #endif
             }
         }
-        byte[] _pngBytes = Array.Empty<byte>();
+        byte[] _pngBytes = [];
 
         /// <summary>
         /// Gets the bytes of a comparision document.
@@ -600,12 +639,11 @@ namespace PdfSharp.Quality
         public byte[] ComparisonBytes
         {
             get => _comparisonBytes;
-            private set => _comparisonBytes = value ?? Array.Empty<byte>();
+            private set => _comparisonBytes = value ?? [];
         }
-        byte[] _comparisonBytes = Array.Empty<byte>();
+        byte[] _comparisonBytes = [];
 
-
-#if old
+#if old  // #KEEP for reference
 //        protected DrawingVisual PrepareDrawingVisual(out DrawingContext dc)
 //        {
 //            return PrepareDrawingVisual(out dc, true);
@@ -945,7 +983,7 @@ namespace PdfSharp.Quality
 //        }
 #endif
 
-#if even_older
+#if even_older  // #KEEP for reference
     ///// <summary>
     ///// Prepares new PDF page for drawing.
     ///// </summary>

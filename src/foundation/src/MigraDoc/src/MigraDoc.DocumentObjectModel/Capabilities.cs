@@ -3,9 +3,8 @@
 
 namespace MigraDoc
 {
-
     /// <summary>
-    /// UNDER CONSTRUCTION #RENAME Capabilities
+    /// UNDER CONSTRUCTION - DO NOT USE.
     /// Capabilities.Fonts.IsAvailable.GlyphToPath
     /// </summary>
     public static class Capabilities
@@ -76,10 +75,11 @@ namespace MigraDoc
             public static bool DoNotCreateLastTable { get; set; } = false;
 
             /// <summary>
-            /// NYI
+            /// Gets or sets a flag that defines what LastSection does if no section exists.
+            /// If false, which is the default value, a new section is created and returned.
+            /// If true, no section will be created and null is returned instead.
             /// </summary>
             public static bool DoNotCreateLastSection { get; set; } = false;
-
 
             // TODO Space before on new page
 
@@ -109,7 +109,6 @@ namespace MigraDoc
         //    public static FeatureNotAvailableAction GlyphsToPath { get; set; } = FeatureNotAvailableAction.DoNothing;
         //}
 
-
         /// <summary>
         /// Compatibility settings for MigraDoc.
         /// </summary>
@@ -117,7 +116,7 @@ namespace MigraDoc
         {
             /// <summary>
             /// Gets or sets a flag that specifies if the renderer should silently ignore charts if they are not supported.
-            /// Otherwise an exception will be thrown.
+            /// Otherwise, an exception will be thrown.
             /// </summary>
             public static FeatureNotAvailableAction ChartsCannotBeRendered { get; set; } = FeatureNotAvailableAction.DoNothing;
 

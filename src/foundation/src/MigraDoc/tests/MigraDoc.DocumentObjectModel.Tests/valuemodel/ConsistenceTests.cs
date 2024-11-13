@@ -1,17 +1,17 @@
-using FluentAssertions;
-using MigraDoc.DocumentObjectModel.Fields;
-using MigraDoc.DocumentObjectModel.Internals;
-using MigraDoc.Rendering;
-using PdfSharp.TestHelper;
-using System;
+// MigraDoc - Creating Documents on the Fly
+// See the LICENSE file in the solution root for more information.
+
 using System.Reflection;
 using MigraDoc.DocumentObjectModel.Visitors;
-using Xunit;
-using static MigraDoc.DocumentObjectModel.Border;
 using MigraDoc.DocumentObjectModel.Tests.Helper;
+using Xunit;
+using FluentAssertions;
+
+using static MigraDoc.DocumentObjectModel.Border;
 
 namespace MigraDoc.DocumentObjectModel.Tests
 {
+    [Collection("PDFsharp")]
     public class ConsistenceTests
     {
         public Type[] GetAllDocumentObjectTypes()
@@ -25,9 +25,6 @@ namespace MigraDoc.DocumentObjectModel.Tests
 
                 if (type.IsAbstract)
                     continue;
-
-                //if (type.Name == nameof(DocumentObjectCollection))
-                //    continue; // BUG
 
                 domTypes.Add(type);
             }
@@ -55,7 +52,7 @@ namespace MigraDoc.DocumentObjectModel.Tests
                 }
                 else
                 {
-                    ((Action)(() => { }))();
+                    _ = typeof(int);
                 }
             }
         }
@@ -77,7 +74,7 @@ namespace MigraDoc.DocumentObjectModel.Tests
 
                 foreach (var vd in vds)
                 {
-                    Char.IsUpper(vd.ValueName[..1].ToCharArray()[0]).Should().BeTrue();
+                    Char.IsUpper(vd.ValueName[0]).Should().BeTrue();
 
                     switch (vd)
                     {
@@ -112,8 +109,6 @@ namespace MigraDoc.DocumentObjectModel.Tests
                 }
             }
         }
-
-
 
         [Fact]
         public void Test_DocumentSelfSectionAndParentReferences()

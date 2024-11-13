@@ -13,28 +13,28 @@ namespace PdfSharp.Drawing.BarCodes
         /// </summary>
         public Code2of5Interleaved()
             : base("", XSize.Empty, CodeDirection.LeftToRight)
-        {}
+        { }
 
         /// <summary>
         /// Initializes a new instance of Interleaved2of5.
         /// </summary>
         public Code2of5Interleaved(string code)
             : base(code, XSize.Empty, CodeDirection.LeftToRight)
-        {}
+        { }
 
         /// <summary>
         /// Initializes a new instance of Interleaved2of5.
         /// </summary>
         public Code2of5Interleaved(string code, XSize size)
             : base(code, size, CodeDirection.LeftToRight)
-        {}
+        { }
 
         /// <summary>
         /// Initializes a new instance of Interleaved2of5.
         /// </summary>
         public Code2of5Interleaved(string code, XSize size, CodeDirection direction)
             : base(code, size, direction)
-        {}
+        { }
 
         /// <summary>
         /// Returns an array of size 5 that represents the thick (true) and thin (false) lines or spaces
@@ -46,19 +46,19 @@ namespace PdfSharp.Drawing.BarCodes
             return Lines[digit];
         }
 
-        static bool[][] Lines = 
-        {
-            new bool[] {false, false, true, true, false},
-            new bool[] {true, false, false, false, true},
-            new bool[] {false, true, false, false, true},
-            new bool[] {true, true, false, false, false},
-            new bool[] {false, false, true, false, true},
-            new bool[] {true, false, true, false, false},
-            new bool[] {false, true, true, false, false},
-            new bool[] {false, false, false, true, true},
-            new bool[] {true, false, false, true, false},
-            new bool[] {false, true, false, true, false},
-        };
+        static readonly bool[][] Lines =
+        [
+            [false, false, true, true, false],
+            [true, false, false, false, true],
+            [false, true, false, false, true],
+            [true, true, false, false, false],
+            [false, false, true, false, true],
+            [true, false, true, false, false],
+            [false, true, true, false, false],
+            [false, false, false, true, true],
+            [true, false, false, true, false],
+            [false, true, false, true, false]
+        ];
 
         /// <summary>
         /// Renders the bar code.
@@ -133,7 +133,7 @@ namespace PdfSharp.Drawing.BarCodes
             int digitForGaps = Int32.Parse(Text[info.CurrPosInString + 1].ToString());
             bool[] linesArray = Lines[digitForLines];
             bool[] gapsArray = Lines[digitForGaps];
-            for (int idx = 0; idx < 5; ++idx)
+            for (int idx = 0; idx < 5; idx++)
             {
                 RenderBar(info, linesArray[idx]);
                 RenderGap(info, gapsArray[idx]);
@@ -148,20 +148,20 @@ namespace PdfSharp.Drawing.BarCodes
         protected override void CheckCode(string text)
         {
 #if true_
-      if (text == null)
-        throw new ArgumentNullException("text");
+            if (text == null)
+                throw new ArgumentNullException(nameof(text));
 
-      if (text == "")
-        throw new ArgumentException(BcgSR.Invalid2Of5Code(text));
+            if (text == "")
+                throw new ArgumentException(BcgSR.Invalid2Of5Code(text));
 
-      if (text.Length % 2 != 0)
-        throw new ArgumentException(BcgSR.Invalid2Of5Code(text));
+            if (text.Length % 2 != 0)
+                throw new ArgumentException(BcgSR.Invalid2Of5Code(text));
 
-      foreach (char ch in text)
-      {
-        if (!Char.IsDigit(ch))
-          throw new ArgumentException(BcgSR.Invalid2Of5Code(text));
-      }
+            foreach (char ch in text)
+            {
+                if (!Char.IsDigit(ch))
+                    throw new ArgumentException(BcgSR.Invalid2Of5Code(text));
+            }
 #endif
         }
     }

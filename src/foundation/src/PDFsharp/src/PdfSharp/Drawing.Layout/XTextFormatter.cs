@@ -27,7 +27,6 @@ namespace PdfSharp.Drawing.Layout
         /// <summary>
         /// Gets or sets the text.
         /// </summary>
-        /// <value>The text.</value>
         public string Text
         {
             get => _text;
@@ -43,7 +42,7 @@ namespace PdfSharp.Drawing.Layout
             get => _font;
             set
             {
-                _font = value ?? throw new ArgumentNullException("Font");
+                _font = value ?? throw new ArgumentNullException(nameof(Font));
 
                 _lineSpace = _font.GetHeight(); // old: _font.GetHeight(_gfx);
                 _cyAscent = _lineSpace * _font.CellAscent / _font.CellSpace;
@@ -353,7 +352,7 @@ namespace PdfSharp.Drawing.Layout
             /// </summary>
             public bool Stop;
         }
-        // TODO:
+        // TODO: Possible Improvements for XTextFormatter:
         // - more XStringFormat variations
         // - calculate bounding box
         // - left and right indent

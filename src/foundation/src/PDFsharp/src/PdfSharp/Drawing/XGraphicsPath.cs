@@ -12,13 +12,14 @@ using SysSize = System.Windows.Size;
 using SysRect = System.Windows.Rect;
 using WpfBrushes = System.Windows.Media.Brushes;
 #endif
-#if UWP
+#if WUI
 using Windows.UI.Xaml.Media;
 using SysPoint = Windows.Foundation.Point;
 using SysSize = Windows.Foundation.Size;
 using SysRect = Windows.Foundation.Rect;
 #endif
 using PdfSharp.Internal;
+using PdfSharp.Fonts.Internal;
 
 namespace PdfSharp.Drawing
 {
@@ -33,18 +34,18 @@ namespace PdfSharp.Drawing
         public XGraphicsPath()
         {
 #if CORE
-            _corePath = new CoreGraphicsPath();
+            CorePath = new CoreGraphicsPath();
 #endif
 #if GDI
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath = new GraphicsPath();
+                GdipPath = new GraphicsPath();
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
-#if WPF || UWP
-            _pathGeometry = new PathGeometry();
+#if WPF || WUI
+            PathGeometry = new PathGeometry();
 #endif
         }
 
@@ -58,7 +59,7 @@ namespace PdfSharp.Drawing
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath = new GraphicsPath(points, types, (FillMode)fillMode);
+                GdipPath = new GraphicsPath(points, types, (FillMode)fillMode);
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
@@ -69,7 +70,18 @@ namespace PdfSharp.Drawing
         }
 #endif
 
-#if WPF || UWP
+#if WPF
+        /// <summary>
+        /// Initializes a new instance of the <see cref="XGraphicsPath"/> class
+        /// and initializes it with a clone of the specified geometry.
+        /// </summary>
+        public XGraphicsPath(PathGeometry geometry)
+        {
+            PathGeometry = geometry.Clone();
+        }
+#endif
+
+#if WPF || WUI
         /// <summary>
         /// Gets the current path figure.
         /// </summary>
@@ -77,22 +89,22 @@ namespace PdfSharp.Drawing
         {
             get
             {
-                int count = _pathGeometry.Figures.Count;
+                int count = PathGeometry.Figures.Count;
                 if (count == 0)
                 {
                     // Create new figure if there is none.
-                    _pathGeometry.Figures.Add(new PathFigure());
+                    PathGeometry.Figures.Add(new PathFigure());
                     count++;
                 }
                 else
                 {
-                    PathFigure lastFigure = _pathGeometry.Figures[count - 1];
+                    PathFigure lastFigure = PathGeometry.Figures[count - 1];
                     if (lastFigure.IsClosed)
                     {
                         if (lastFigure.Segments.Count > 0)
                         {
                             // Create new figure if previous one was closed.
-                            _pathGeometry.Figures.Add(new PathFigure());
+                            PathGeometry.Figures.Add(new PathFigure());
                             count++;
                         }
                         else
@@ -102,7 +114,7 @@ namespace PdfSharp.Drawing
                     }
                 }
                 // Return last figure in collection.
-                return _pathGeometry.Figures[count - 1];
+                return PathGeometry.Figures[count - 1];
             }
         }
 
@@ -113,8 +125,8 @@ namespace PdfSharp.Drawing
         {
             get
             {
-                int count = _pathGeometry.Figures.Count;
-                return count == 0 ? new PathFigure() : _pathGeometry.Figures[count - 1];
+                int count = PathGeometry.Figures.Count;
+                return count == 0 ? new PathFigure() : PathGeometry.Figures[count - 1];
             }
         }
 #endif
@@ -126,21 +138,39 @@ namespace PdfSharp.Drawing
         {
             var path = (XGraphicsPath)MemberwiseClone();
 #if CORE
-            _corePath = new CoreGraphicsPath(_corePath);
+            CorePath = new CoreGraphicsPath(CorePath);
 #endif
 #if GDI
             try
             {
                 Lock.EnterGdiPlus();
-                path._gdipPath = (GraphicsPath)_gdipPath.Clone();
+                path.GdipPath = (GraphicsPath)GdipPath.Clone();
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
-#if WPF || UWP
-            path._pathGeometry = _pathGeometry.Clone();
+#if WPF || WUI
+            path.PathGeometry = PathGeometry.Clone();
 #endif
             return path;
         }
+
+#if GDI_
+#endif
+
+#if WPF_
+        internal static XGraphicsPath FromPathGeometry(PathGeometry pathGeometry)
+        {
+            foreach (var figure in pathGeometry.Figures)
+            {
+                foreach (var segment in figure.Segments)
+                {
+                    segment.
+                }
+            }
+
+            return default;
+        }
+#endif
 
         // ----- AddLine ------------------------------------------------------------------------------
 
@@ -188,14 +218,14 @@ namespace PdfSharp.Drawing
         public void AddLine(double x1, double y1, double x2, double y2)
         {
 #if CORE
-            _corePath.MoveOrLineTo(x1, y1);
-            _corePath.LineTo(x2, y2, false);
+            CorePath.MoveOrLineTo(x1, y1);
+            CorePath.LineTo(x2, y2, false);
 #endif
 #if GDI
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.AddLine((float)x1, (float)y1, (float)x2, (float)y2);
+                GdipPath.AddLine((float)x1, (float)y1, (float)x2, (float)y2);
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
@@ -270,15 +300,15 @@ namespace PdfSharp.Drawing
             if (count == 0)
                 return;
 #if CORE
-            _corePath.MoveOrLineTo(points[0].X, points[0].Y);
+            CorePath.MoveOrLineTo(points[0].X, points[0].Y);
             for (int idx = 1; idx < count; idx++)
-                _corePath.LineTo(points[idx].X, points[idx].Y, false);
+                CorePath.LineTo(points[idx].X, points[idx].Y, false);
 #endif
 #if GDI
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.AddLines(XGraphics.MakePointFArray(points));
+                GdipPath.AddLines(XGraphics.MakePointFArray(points));
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
@@ -361,14 +391,14 @@ namespace PdfSharp.Drawing
         public void AddBezier(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4)
         {
 #if CORE
-            _corePath.MoveOrLineTo(x1, y1);
-            _corePath.BezierTo(x2, y2, x3, y3, x4, y4, false);
+            CorePath.MoveOrLineTo(x1, y1);
+            CorePath.BezierTo(x2, y2, x3, y3, x4, y4, false);
 #endif
 #if GDI
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.AddBezier((float)x1, (float)y1, (float)x2, (float)y2, (float)x3, (float)y3, (float)x4, (float)y4);
+                GdipPath.AddBezier((float)x1, (float)y1, (float)x2, (float)y2, (float)x3, (float)y3, (float)x4, (float)y4);
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
@@ -455,10 +485,10 @@ namespace PdfSharp.Drawing
                     nameof(points));
 
 #if CORE
-            _corePath.MoveOrLineTo(points[0].X, points[0].Y);
+            CorePath.MoveOrLineTo(points[0].X, points[0].Y);
             for (int idx = 1; idx < count; idx += 3)
             {
-                _corePath.BezierTo(points[idx].X, points[idx].Y, points[idx + 1].X, points[idx + 1].Y,
+                CorePath.BezierTo(points[idx].X, points[idx].Y, points[idx + 1].X, points[idx + 1].Y,
                     points[idx + 2].X, points[idx + 2].Y, false);
             }
 #endif
@@ -466,7 +496,7 @@ namespace PdfSharp.Drawing
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.AddBeziers(XGraphics.MakePointFArray(points));
+                GdipPath.AddBeziers(XGraphics.MakePointFArray(points));
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
@@ -586,13 +616,13 @@ namespace PdfSharp.Drawing
             if (count < 2)
                 throw new ArgumentException("AddCurve requires two or more points.", nameof(points));
 #if CORE
-            _corePath.AddCurve(points, tension);
+            CorePath.AddCurve(points, tension);
 #endif
 #if GDI
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.AddCurve(XGraphics.MakePointFArray(points), (float)tension);
+                GdipPath.AddCurve(XGraphics.MakePointFArray(points), (float)tension);
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
@@ -670,7 +700,7 @@ namespace PdfSharp.Drawing
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.AddCurve(XGraphics.MakePointFArray(points), offset, numberOfSegments, (float)tension);
+                GdipPath.AddCurve(XGraphics.MakePointFArray(points), offset, numberOfSegments, (float)tension);
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
@@ -715,13 +745,13 @@ namespace PdfSharp.Drawing
         public void AddArc(double x, double y, double width, double height, double startAngle, double sweepAngle)
         {
 #if CORE
-            _corePath.AddArc(x, y, width, height, startAngle, sweepAngle);
+            CorePath.AddArc(x, y, width, height, startAngle, sweepAngle);
 #endif
 #if GDI
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.AddArc((float)x, (float)y, (float)width, (float)height, (float)startAngle, (float)sweepAngle);
+                GdipPath.AddArc((float)x, (float)y, (float)width, (float)height, (float)startAngle, (float)sweepAngle);
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
@@ -760,10 +790,13 @@ namespace PdfSharp.Drawing
         public void AddArc(XPoint point1, XPoint point2, XSize size, double rotationAngle, bool isLargeArg, XSweepDirection sweepDirection)
         {
 #if CORE
-            _corePath.AddArc(point1, point2, size, rotationAngle, isLargeArg, sweepDirection);
+            CorePath.AddArc(point1, point2, size, rotationAngle, isLargeArg, sweepDirection);
 #endif
 #if GDI
-            DiagnosticsHelper.HandleNotImplemented("XGraphicsPath.AddArc");
+            //DiagnosticsHelper.HandleNotImplemented("XGraphicsPath.AddArc");
+            const string message = "AddArc: This operation is not yet implemented in GDI build.";
+            DiagnosticsHelper.HandleNotImplemented(message, Capabilities.Action.PathOperations);
+
 #endif
 #if WPF
             PathFigure figure = CurrentPathFigure;
@@ -824,11 +857,11 @@ namespace PdfSharp.Drawing
         public void AddRectangle(XRect rect)
         {
 #if CORE
-            _corePath.MoveTo(rect.X, rect.Y);
-            _corePath.LineTo(rect.X + rect.Width, rect.Y, false);
-            _corePath.LineTo(rect.X + rect.Width, rect.Y + rect.Height, false);
-            _corePath.LineTo(rect.X, rect.Y + rect.Height, true);
-            _corePath.CloseSubpath();
+            CorePath.MoveTo(rect.X, rect.Y);
+            CorePath.LineTo(rect.X + rect.Width, rect.Y, false);
+            CorePath.LineTo(rect.X + rect.Width, rect.Y + rect.Height, false);
+            CorePath.LineTo(rect.X, rect.Y + rect.Height, true);
+            CorePath.CloseSubpath();
 #endif
 #if GDI
             try
@@ -840,9 +873,9 @@ namespace PdfSharp.Drawing
                 // _gdipPath.AddRectangle(rect.ToRectangleF());
 
                 // Draw the rectangle manually.
-                _gdipPath.StartFigure();
-                _gdipPath.AddLines(new PointF[] { rect.TopLeft.ToPointF(), rect.TopRight.ToPointF(), rect.BottomRight.ToPointF(), rect.BottomLeft.ToPointF() });
-                _gdipPath.CloseFigure();
+                GdipPath.StartFigure();
+                GdipPath.AddLines([rect.TopLeft.ToPointF(), rect.TopRight.ToPointF(), rect.BottomRight.ToPointF(), rect.BottomLeft.ToPointF()]);
+                GdipPath.CloseFigure();
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
@@ -896,7 +929,7 @@ namespace PdfSharp.Drawing
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.AddRectangles(rects);
+                GdipPath.AddRectangles(rects);
             }
             finally { Lock.ExitGdiPlus(); }
         }
@@ -915,7 +948,7 @@ namespace PdfSharp.Drawing
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.AddRectangles(rects);
+                GdipPath.AddRectangles(rects);
             }
             finally { Lock.ExitGdiPlus(); }
         }
@@ -936,7 +969,7 @@ namespace PdfSharp.Drawing
                 try
                 {
                     Lock.EnterGdiPlus();
-                    _gdipPath.AddRectangle(rects[idx].ToRectangleF());
+                    GdipPath.AddRectangle(rects[idx].ToRectangleF());
                 }
                 finally { Lock.ExitGdiPlus(); }
 #endif
@@ -981,7 +1014,7 @@ namespace PdfSharp.Drawing
         }
 #endif
 
-#if WPF || UWP
+#if WPF || WUI
         /// <summary>
         /// Adds a rectangle with rounded corners to this path.
         /// </summary>
@@ -1021,19 +1054,19 @@ namespace PdfSharp.Drawing
             double arcWidth = ellipseWidth / 2;
             double arcHeight = ellipseHeight / 2;
 #if true  // Clockwise
-            _corePath.MoveTo(x + width - arcWidth, y);
-            _corePath.QuadrantArcTo(x + width - arcWidth, y + arcHeight, arcWidth, arcHeight, 1, true);
+            CorePath.MoveTo(x + width - arcWidth, y);
+            CorePath.QuadrantArcTo(x + width - arcWidth, y + arcHeight, arcWidth, arcHeight, 1, true);
 
-            _corePath.LineTo(x + width, y + height - arcHeight, false);
-            _corePath.QuadrantArcTo(x + width - arcWidth, y + height - arcHeight, arcWidth, arcHeight, 4, true);
+            CorePath.LineTo(x + width, y + height - arcHeight, false);
+            CorePath.QuadrantArcTo(x + width - arcWidth, y + height - arcHeight, arcWidth, arcHeight, 4, true);
 
-            _corePath.LineTo(x + arcWidth, y + height, false);
-            _corePath.QuadrantArcTo(x + arcWidth, y + height - arcHeight, arcWidth, arcHeight, 3, true);
+            CorePath.LineTo(x + arcWidth, y + height, false);
+            CorePath.QuadrantArcTo(x + arcWidth, y + height - arcHeight, arcWidth, arcHeight, 3, true);
 
-            _corePath.LineTo(x, y + arcHeight, false);
-            _corePath.QuadrantArcTo(x + arcWidth, y + arcHeight, arcWidth, arcHeight, 2, true);
+            CorePath.LineTo(x, y + arcHeight, false);
+            CorePath.QuadrantArcTo(x + arcWidth, y + arcHeight, arcWidth, arcHeight, 2, true);
 
-            _corePath.CloseSubpath();
+            CorePath.CloseSubpath();
 #else  // Counterclockwise
             _corePath.MoveTo(x + arcWidth, y);
             _corePath.QuadrantArcTo(x + arcWidth, y + arcHeight, arcWidth, arcHeight, 2, false);
@@ -1063,16 +1096,16 @@ namespace PdfSharp.Drawing
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.StartFigure();
-                _gdipPath.AddArc((float)(x + width - ellipseWidth), (float)y, (float)ellipseWidth, (float)ellipseHeight, -90, 90);
-                _gdipPath.AddArc((float)(x + width - ellipseWidth), (float)(y + height - ellipseHeight), (float)ellipseWidth, (float)ellipseHeight, 0, 90);
-                _gdipPath.AddArc((float)x, (float)(y + height - ellipseHeight), (float)ellipseWidth, (float)ellipseHeight, 90, 90);
-                _gdipPath.AddArc((float)x, (float)y, (float)ellipseWidth, (float)ellipseHeight, 180, 90);
-                _gdipPath.CloseFigure();
+                GdipPath.StartFigure();
+                GdipPath.AddArc((float)(x + width - ellipseWidth), (float)y, (float)ellipseWidth, (float)ellipseHeight, -90, 90);
+                GdipPath.AddArc((float)(x + width - ellipseWidth), (float)(y + height - ellipseHeight), (float)ellipseWidth, (float)ellipseHeight, 0, 90);
+                GdipPath.AddArc((float)x, (float)(y + height - ellipseHeight), (float)ellipseWidth, (float)ellipseHeight, 90, 90);
+                GdipPath.AddArc((float)x, (float)y, (float)ellipseWidth, (float)ellipseHeight, 180, 90);
+                GdipPath.CloseFigure();
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
-#if WPF || UWP
+#if WPF || WUI
             double ex = ellipseWidth / 2;
             double ey = ellipseHeight / 2;
             StartFigure();
@@ -1087,7 +1120,9 @@ namespace PdfSharp.Drawing
 
             // TODOWPF
 #if true
-            figure.Segments.Add(new ArcSegment(new SysPoint(x + width, y + ey), new SysSize(ex, ey), 0, false, SweepDirection.Clockwise, true));
+            figure.Segments.Add(new ArcSegment(new SysPoint(x + width, y + ey),
+                new SysSize(ex, ey), 0, false,
+                SweepDirection.Clockwise, true));
             //figure.Segments.Add(new LineSegment(new SysPoint(x + width, y + ey), true));
 #else
             figure.Segments.Add(new ArcSegment
@@ -1129,7 +1164,9 @@ namespace PdfSharp.Drawing
 
             // TODOWPF
 #if true
-            figure.Segments.Add(new ArcSegment(new SysPoint(x, y + height - ey), new SysSize(ex, ey), 0, false, SweepDirection.Clockwise, true));
+            figure.Segments.Add(new ArcSegment(new SysPoint(x, y + height - ey),
+                new SysSize(ex, ey), 0, false,
+                SweepDirection.Clockwise, true));
             //figure.Segments.Add(new LineSegment(new SysPoint(x, y + height - ey), true));
 #else
             figure.Segments.Add(new ArcSegment
@@ -1206,24 +1243,24 @@ namespace PdfSharp.Drawing
             double h = height / 2;
             double xc = x + w;
             double yc = y + h;
-            _corePath.MoveTo(x + w, y);
-            _corePath.QuadrantArcTo(xc, yc, w, h, 1, true);
-            _corePath.QuadrantArcTo(xc, yc, w, h, 4, true);
-            _corePath.QuadrantArcTo(xc, yc, w, h, 3, true);
-            _corePath.QuadrantArcTo(xc, yc, w, h, 2, true);
-            _corePath.CloseSubpath();
+            CorePath.MoveTo(x + w, y);
+            CorePath.QuadrantArcTo(xc, yc, w, h, 1, true);
+            CorePath.QuadrantArcTo(xc, yc, w, h, 4, true);
+            CorePath.QuadrantArcTo(xc, yc, w, h, 3, true);
+            CorePath.QuadrantArcTo(xc, yc, w, h, 2, true);
+            CorePath.CloseSubpath();
 #endif
 #if GDI
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.AddEllipse((float)x, (float)y, (float)width, (float)height);
+                GdipPath.AddEllipse((float)x, (float)y, (float)width, (float)height);
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
-#if WPF || UWP
+#if WPF || WUI
 #if true
-            _pathGeometry.AddGeometry(new EllipseGeometry(new Rect(x, y, width, height)));
+            PathGeometry.AddGeometry(new EllipseGeometry(new Rect(x, y, width, height)));
 #else
             var figure = new PathFigure();
             figure.StartPoint = new SysPoint(x, y + height / 2);
@@ -1247,7 +1284,7 @@ namespace PdfSharp.Drawing
             figure.Segments.Add(segment);
             _pathGeometry.Figures.Add(figure);
 #endif
-            // StartFigure() isn't needed because AddGeometry() implicitly starts a new figure,
+            // StartFigure() isn’t needed because AddGeometry() implicitly starts a new figure,
             // but CloseFigure() is needed for the next adding not to continue this figure.
             CloseFigure();
 #endif
@@ -1264,13 +1301,13 @@ namespace PdfSharp.Drawing
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.AddPolygon(points);
+                GdipPath.AddPolygon(points);
             }
             finally { Lock.ExitGdiPlus(); }
         }
 #endif
 
-#if WPF || UWP
+#if WPF || WUI
         /// <summary>
         /// Adds a polygon to this path.
         /// </summary>
@@ -1278,8 +1315,8 @@ namespace PdfSharp.Drawing
         {
             // TODO: fill mode unclear here
 #if true
-            _pathGeometry.AddGeometry(GeometryHelper.CreatePolygonGeometry(points, XFillMode.Alternate, true));
-            CloseFigure(); // StartFigure() isn't needed because AddGeometry() implicitly starts a new figure, but CloseFigure() is needed for the next adding not to continue this figure.
+            PathGeometry.AddGeometry(GeometryHelper.CreatePolygonGeometry(points, XFillMode.Alternate, true));
+            CloseFigure(); // StartFigure() isn’t needed because AddGeometry() implicitly starts a new figure, but CloseFigure() is needed for the next adding not to continue this figure.
 #else
             AddPolygon(XGraphics.MakeXPointArray(points, 0, points.Length));
 #endif
@@ -1295,7 +1332,7 @@ namespace PdfSharp.Drawing
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.AddPolygon(points);
+                GdipPath.AddPolygon(points);
             }
             finally { Lock.ExitGdiPlus(); }
         }
@@ -1311,23 +1348,23 @@ namespace PdfSharp.Drawing
             if (count == 0)
                 return;
 
-            _corePath.MoveTo(points[0].X, points[0].Y);
+            CorePath.MoveTo(points[0].X, points[0].Y);
             for (int idx = 0; idx < count - 1; idx++)
-                _corePath.LineTo(points[idx].X, points[idx].Y, false);
-            _corePath.LineTo(points[count - 1].X, points[count - 1].Y, true);
-            _corePath.CloseSubpath();
+                CorePath.LineTo(points[idx].X, points[idx].Y, false);
+            CorePath.LineTo(points[count - 1].X, points[count - 1].Y, true);
+            CorePath.CloseSubpath();
 #endif
 #if GDI
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.AddPolygon(XGraphics.MakePointFArray(points));
+                GdipPath.AddPolygon(XGraphics.MakePointFArray(points));
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
-#if WPF || UWP
+#if WPF || WUI
 #if true
-            _pathGeometry.AddGeometry(GeometryHelper.CreatePolygonGeometry(XGraphics.MakePointArray(points), XFillMode.Alternate, true));
+            PathGeometry.AddGeometry(GeometryHelper.CreatePolygonGeometry(XGraphics.MakePointArray(points), XFillMode.Alternate, true));
 #else
             var figure = new PathFigure();
             figure.StartPoint = new SysPoint(points[0].X, points[0].Y);
@@ -1343,7 +1380,7 @@ namespace PdfSharp.Drawing
             _pathGeometry.Figures.Add(figure);
 #endif
             // TODO: NOT NEEDED
-            //CloseFigure(); // StartFigure() isn't needed because AddGeometry() implicitly starts a new figure, but CloseFigure() is needed for the next adding not to continue this figure.
+            //CloseFigure(); // StartFigure() isn’t needed because AddGeometry() implicitly starts a new figure, but CloseFigure() is needed for the next adding not to continue this figure.
 #endif
         }
 
@@ -1358,7 +1395,7 @@ namespace PdfSharp.Drawing
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.AddPie(rect, (float)startAngle, (float)sweepAngle);
+                GdipPath.AddPie(rect, (float)startAngle, (float)sweepAngle);
             }
             finally { Lock.ExitGdiPlus(); }
         }
@@ -1388,18 +1425,20 @@ namespace PdfSharp.Drawing
         public void AddPie(double x, double y, double width, double height, double startAngle, double sweepAngle)
         {
 #if CORE
-            DiagnosticsHelper.HandleNotImplemented("XGraphicsPath.AddPie");
+            const string message = "AddPie: This operation is not yet implemented in CORE build.";
+            DiagnosticsHelper.HandleNotImplemented(message, Capabilities.Action.PathOperations);
 #endif
 #if GDI
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.AddPie((float)x, (float)y, (float)width, (float)height, (float)startAngle, (float)sweepAngle);
+                GdipPath.AddPie((float)x, (float)y, (float)width, (float)height, (float)startAngle, (float)sweepAngle);
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
-#if WPF || UWP
-            DiagnosticsHelper.HandleNotImplemented("XGraphicsPath.AddPie");
+#if WPF || WUI
+            const string message = "AddPie: This operation is not yet implemented in WPF build.";
+            DiagnosticsHelper.HandleNotImplemented(message, Capabilities.Action.PathOperations);
 #endif
         }
 
@@ -1415,7 +1454,7 @@ namespace PdfSharp.Drawing
         }
 #endif
 
-#if WPF || UWP
+#if WPF || WUI
         /// <summary>
         /// Adds a closed curve to this path.
         /// </summary>
@@ -1453,7 +1492,7 @@ namespace PdfSharp.Drawing
         }
 #endif
 
-#if WPF || UWP
+#if WPF || WUI
         /// <summary>
         /// Adds a closed curve to this path.
         /// </summary>
@@ -1487,17 +1526,18 @@ namespace PdfSharp.Drawing
                 throw new ArgumentException("Not enough points.", nameof(points));
 
 #if CORE
-            DiagnosticsHelper.HandleNotImplemented("XGraphicsPath.AddClosedCurve");
+            const string message = "AddClosedCurve: This operation is not yet implemented in CORE build.";
+            DiagnosticsHelper.HandleNotImplemented(message, Capabilities.Action.PathOperations);
 #endif
 #if GDI
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.AddClosedCurve(XGraphics.MakePointFArray(points), (float)tension);
+                GdipPath.AddClosedCurve(XGraphics.MakePointFArray(points), (float)tension);
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
-#if WPF || UWP
+#if WPF || WUI
             tension /= 3;
 
             StartFigure();
@@ -1527,20 +1567,30 @@ namespace PdfSharp.Drawing
         public void AddPath(XGraphicsPath path, bool connect)
         {
 #if CORE
-            DiagnosticsHelper.HandleNotImplemented("XGraphicsPath.AddPath");
+            const string message = "AddPath: This operation is not yet implemented in CORE build.";
+            DiagnosticsHelper.HandleNotImplemented(message, Capabilities.Action.PathOperations);
 #endif
 #if GDI
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.AddPath(path._gdipPath, connect);
+                GdipPath.AddPath(path.GdipPath, connect);
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
-#if WPF || UWP
-            _pathGeometry.AddGeometry(path._pathGeometry);
+#if WPF || WUI
+            PathGeometry.AddGeometry(path.PathGeometry);
 #endif
         }
+
+        // ----- AddPath ------------------------------------------------------------------------------
+
+#if WPF
+        /// <summary>
+        /// Adds the specified path to this path.
+        /// </summary>
+        public void AddGeometry(PathGeometry geometry) => PathGeometry.AddGeometry(geometry);
+#endif
 
         // ----- AddString ----------------------------------------------------------------------------
 
@@ -1554,7 +1604,7 @@ namespace PdfSharp.Drawing
         }
 #endif
 
-#if WPF || UWP
+#if WPF || WUI
         /// <summary>
         /// Adds a text string to this path.
         /// </summary>
@@ -1583,30 +1633,13 @@ namespace PdfSharp.Drawing
             try
             {
 #if CORE
-// ReviewSTLA THHO4STLA
+                // ReviewSTLA THHO4STLA
                 // EXPERIMENTAL
-                switch (Capabilities.Action.GlyphsToPath)
-                {
-                    case FeatureNotAvailableAction.DoNothing:
-                        return;
-
-                    case FeatureNotAvailableAction.FailWithException:
-                        DiagnosticsHelper.HandleNotImplemented("XGraphicsPath.AddString");
-                        break;
-
-                    case FeatureNotAvailableAction.LogWarning:
-                        break;
-
-                    case FeatureNotAvailableAction.LogError:
-                        break;
-
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
+                DiagnosticsHelper.HandleNotImplemented(AddStringMessage, Capabilities.Action.GlyphsToPath);
 #endif
 #if GDI
                 if (family.GdiFamily == null)
-                    throw new NotImplementedException(PSSR.NotImplementedForFontsRetrievedWithFontResolver(family.Name));
+                    throw new NotImplementedException(PsMsgs.NotImplementedForFontsRetrievedWithFontResolver(family.Name));
 
                 PointF p = origin.ToPointF();
                 p.Y += SimulateBaselineOffset(family, style, emSize, format);
@@ -1614,13 +1647,13 @@ namespace PdfSharp.Drawing
                 try
                 {
                     Lock.EnterGdiPlus();
-                    _gdipPath.AddString(s, family.GdiFamily, (int)style, (float)emSize, p, format.RealizeGdiStringFormat());
+                    GdipPath.AddString(s, family.GdiFamily, (int)style, (float)emSize, p, format.RealizeGdiStringFormat());
                 }
                 finally { Lock.ExitGdiPlus(); }
 #endif
 #if WPF
                 if (family.WpfFamily == null)
-                    throw new NotImplementedException(PSSR.NotImplementedForFontsRetrievedWithFontResolver(family.Name));
+                    throw new NotImplementedException(PsMsgs.NotImplementedForFontsRetrievedWithFontResolver(family.Name));
 
                 XFont font = new XFont(family.Name, emSize, style);
 
@@ -1670,7 +1703,7 @@ namespace PdfSharp.Drawing
                 }
 
                 Geometry geo = formattedText.BuildGeometry(new XPoint(x, y));
-                _pathGeometry.AddGeometry(geo);
+                PathGeometry.AddGeometry(geo);
 #endif
             }
             catch
@@ -1686,7 +1719,7 @@ namespace PdfSharp.Drawing
         public void AddString(string s, XFontFamily family, XFontStyleEx style, double emSize, Rectangle layoutRect, XStringFormat format)
         {
             if (family.GdiFamily == null)
-                throw new NotFiniteNumberException(PSSR.NotImplementedForFontsRetrievedWithFontResolver(family.Name));
+                throw new NotFiniteNumberException(PsMsgs.NotImplementedForFontsRetrievedWithFontResolver(family.Name));
 
             Rectangle rect = new Rectangle(layoutRect.X, layoutRect.Y, layoutRect.Width, layoutRect.Height);
             rect.Offset(new System.Drawing.Point(0, (int)SimulateBaselineOffset(family, style, emSize, format)));
@@ -1694,7 +1727,7 @@ namespace PdfSharp.Drawing
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.AddString(s, family.GdiFamily, (int)style, (float)emSize, rect, format.RealizeGdiStringFormat());
+                GdipPath.AddString(s, family.GdiFamily, (int)style, (float)emSize, rect, format.RealizeGdiStringFormat());
             }
             finally { Lock.ExitGdiPlus(); }
         }
@@ -1705,7 +1738,7 @@ namespace PdfSharp.Drawing
         public void AddString(string s, XFontFamily family, XFontStyleEx style, double emSize, RectangleF layoutRect, XStringFormat format)
         {
             if (family.GdiFamily == null)
-                throw new NotFiniteNumberException(PSSR.NotImplementedForFontsRetrievedWithFontResolver(family.Name));
+                throw new NotFiniteNumberException(PsMsgs.NotImplementedForFontsRetrievedWithFontResolver(family.Name));
 
             RectangleF rect = new RectangleF(layoutRect.X, layoutRect.Y, layoutRect.Width, layoutRect.Height);
             rect.Offset(new PointF(0, SimulateBaselineOffset(family, style, emSize, format)));
@@ -1713,7 +1746,7 @@ namespace PdfSharp.Drawing
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.AddString(s, family.GdiFamily, (int)style, (float)emSize, layoutRect, format.RealizeGdiStringFormat());
+                GdipPath.AddString(s, family.GdiFamily, (int)style, (float)emSize, layoutRect, format.RealizeGdiStringFormat());
             }
             finally { Lock.ExitGdiPlus(); }
         }
@@ -1728,7 +1761,6 @@ namespace PdfSharp.Drawing
         /// <param name="style"></param>
         /// <param name="emSize"></param>
         /// <param name="format"></param>
-        /// <returns></returns>
         private float SimulateBaselineOffset(XFontFamily family, XFontStyleEx style, double emSize, XStringFormat format)
         {
             XFont font = new XFont(family.Name, emSize, style);
@@ -1762,8 +1794,7 @@ namespace PdfSharp.Drawing
         /// <summary>
         /// Adds a text string to this path.
         /// </summary>
-        public void AddString(string s, XFontFamily family, XFontStyleEx style, double emSize, XRect layoutRect,
-            XStringFormat format)
+        public void AddString(string s, XFontFamily family, XFontStyleEx style, double emSize, XRect layoutRect, XStringFormat format)
         {
             if (s == null)
                 throw new ArgumentNullException(nameof(s));
@@ -1781,16 +1812,16 @@ namespace PdfSharp.Drawing
             if (s.Length == 0)
                 return;
 
-            XFont font = new XFont(family.Name, emSize, style);
+            var font = new XFont(family.Name, emSize, style);
 #if CORE
-            DiagnosticsHelper.HandleNotImplemented("XGraphicsPath.AddString");
+            DiagnosticsHelper.HandleNotImplemented(AddStringMessage, Capabilities.Action.GlyphsToPath);
 #endif
 #if GDI && !WPF
             //Gfx.DrawString(text, font.Realize_GdiFont(), brush.RealizeGdiBrush(), rect,
             //  format != null ? format.RealizeGdiStringFormat() : null);
 
             if (family.GdiFamily == null)
-                throw new NotFiniteNumberException(PSSR.NotImplementedForFontsRetrievedWithFontResolver(family.Name));
+                throw new NotFiniteNumberException(PsMsgs.NotImplementedForFontsRetrievedWithFontResolver(family.Name));
 
             RectangleF rect = layoutRect.ToRectangleF();
             rect.Offset(new PointF(0, SimulateBaselineOffset(family, style, emSize, format)));
@@ -1798,13 +1829,13 @@ namespace PdfSharp.Drawing
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.AddString(s, family.GdiFamily, (int)style, (float)emSize, rect, format.RealizeGdiStringFormat());
+                GdipPath.AddString(s, family.GdiFamily, (int)style, (float)emSize, rect, format.RealizeGdiStringFormat());
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
 #if WPF && !GDI
             if (family.WpfFamily == null)
-                throw new NotFiniteNumberException(PSSR.NotImplementedForFontsRetrievedWithFontResolver(family.Name));
+                throw new NotFiniteNumberException(PsMsgs.NotImplementedForFontsRetrievedWithFontResolver(family.Name));
 
             // Just a first sketch, but currently we do not need it and there is enough to do...
             double x = layoutRect.X;
@@ -1859,7 +1890,7 @@ namespace PdfSharp.Drawing
                     //y += -formattedText.Baseline + (cyAscent * 2 / 4) + layoutRect.Height / 2;
 
                     // GDI seems to make it this simple:
-                    // TODO: Check WPF's vertical alignment and make all implementations fit. $MaOs
+                    // TODO: Check WPF’s vertical alignment and make all implementations fit. $MaOs
                     y += layoutRect.Height / 2 - lineSpace / 2;
                     break;
 
@@ -1924,7 +1955,7 @@ namespace PdfSharp.Drawing
             //dc.DrawText(formattedText, new SysPoint(x, y));
 
             Geometry geo = formattedText.BuildGeometry(new Point(x, y));
-            _pathGeometry.AddGeometry(geo);
+            PathGeometry.AddGeometry(geo);
 #endif
         }
 
@@ -1936,17 +1967,17 @@ namespace PdfSharp.Drawing
         public void CloseFigure()
         {
 #if CORE
-            _corePath.CloseSubpath();
+            CorePath.CloseSubpath();
 #endif
 #if GDI
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.CloseFigure();
+                GdipPath.CloseFigure();
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
-#if WPF || UWP
+#if WPF || WUI
             PathFigure figure = PeekCurrentFigure;
             if (figure != null && figure.Segments.Count != 0)
                 figure.IsClosed = true;
@@ -1959,23 +1990,22 @@ namespace PdfSharp.Drawing
         public void StartFigure()
         {
 #if CORE
-// ReviewSTLA THHO4STLA
-            // TODO: ???
+            // Nothing to do.
 #endif
 #if GDI
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.StartFigure();
+                GdipPath.StartFigure();
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
-#if WPF || UWP
+#if WPF || WUI
             PathFigure figure = CurrentPathFigure;
             if (figure.Segments.Count != 0)
             {
                 figure = new PathFigure();
-                _pathGeometry.Figures.Add(figure);
+                PathGeometry.Figures.Add(figure);
             }
 #endif
         }
@@ -1998,12 +2028,12 @@ namespace PdfSharp.Drawing
                 try
                 {
                     Lock.EnterGdiPlus();
-                    _gdipPath.FillMode = (FillMode)value;
+                    GdipPath.FillMode = (FillMode)value;
                 }
                 finally { Lock.ExitGdiPlus(); }
 #endif
-#if WPF || UWP
-                _pathGeometry.FillRule = value == XFillMode.Winding ? FillRule.Nonzero : FillRule.EvenOdd;
+#if WPF || WUI
+                PathGeometry.FillRule = value == XFillMode.Winding ? FillRule.Nonzero : FillRule.EvenOdd;
 #endif
             }
         }
@@ -2018,19 +2048,19 @@ namespace PdfSharp.Drawing
         public void Flatten()
         {
 #if CORE
-// ReviewSTLA THHO4STLA
+            // ReviewSTLA THHO4STLA
             // Just do nothing.
 #endif
 #if GDI
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.Flatten();
+                GdipPath.Flatten();
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
-#if WPF || UWP
-            _pathGeometry = _pathGeometry.GetFlattenedPathGeometry();
+#if WPF || WUI
+            PathGeometry = PathGeometry.GetFlattenedPathGeometry();
 #endif
         }
 
@@ -2040,20 +2070,20 @@ namespace PdfSharp.Drawing
         public void Flatten(XMatrix matrix)
         {
 #if CORE
-// ReviewSTLA THHO4STLA
+            // ReviewSTLA THHO4STLA
             // Just do nothing.
 #endif
 #if GDI
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.Flatten(matrix.ToGdiMatrix());
+                GdipPath.Flatten(matrix.ToGdiMatrix());
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
-#if WPF || UWP
-            _pathGeometry = _pathGeometry.GetFlattenedPathGeometry();
-            _pathGeometry.Transform = new MatrixTransform(matrix.ToWpfMatrix());
+#if WPF || WUI
+            PathGeometry = PathGeometry.GetFlattenedPathGeometry();
+            PathGeometry.Transform = new MatrixTransform(matrix.ToWpfMatrix());
 #endif
         }
 
@@ -2063,22 +2093,22 @@ namespace PdfSharp.Drawing
         public void Flatten(XMatrix matrix, double flatness)
         {
 #if CORE
-// ReviewSTLA THHO4STLA
+            // ReviewSTLA THHO4STLA
             // Just do nothing.
 #endif
 #if GDI
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.Flatten(matrix.ToGdiMatrix(), (float)flatness);
+                GdipPath.Flatten(matrix.ToGdiMatrix(), (float)flatness);
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
-#if WPF || UWP
-            _pathGeometry = _pathGeometry.GetFlattenedPathGeometry();
+#if WPF || WUI
+            PathGeometry = PathGeometry.GetFlattenedPathGeometry();
             // TODO: matrix handling not yet tested
             if (!matrix.IsIdentity)
-                _pathGeometry.Transform = new MatrixTransform(matrix.ToWpfMatrix());
+                PathGeometry.Transform = new MatrixTransform(matrix.ToWpfMatrix());
 #endif
         }
 
@@ -2091,19 +2121,19 @@ namespace PdfSharp.Drawing
         public void Widen(XPen pen)
         {
 #if CORE
-// ReviewSTLA THHO4STLA
+            // ReviewSTLA THHO4STLA
             // Just do nothing.
 #endif
 #if GDI
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.Widen(pen.RealizeGdiPen());
+                GdipPath.Widen(pen.RealizeGdiPen());
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
-#if WPF || UWP
-            _pathGeometry = _pathGeometry.GetWidenedPathGeometry(pen.RealizeWpfPen());
+#if WPF || WUI
+            PathGeometry = PathGeometry.GetWidenedPathGeometry(pen.RealizeWpfPen());
 #endif
         }
 
@@ -2123,12 +2153,12 @@ namespace PdfSharp.Drawing
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.Widen(pen.RealizeGdiPen(), matrix.ToGdiMatrix());
+                GdipPath.Widen(pen.RealizeGdiPen(), matrix.ToGdiMatrix());
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
-#if WPF || UWP
-            _pathGeometry = _pathGeometry.GetWidenedPathGeometry(pen.RealizeWpfPen());
+#if WPF || WUI
+            PathGeometry = PathGeometry.GetWidenedPathGeometry(pen.RealizeWpfPen());
 #endif
         }
 
@@ -2145,12 +2175,12 @@ namespace PdfSharp.Drawing
             try
             {
                 Lock.EnterGdiPlus();
-                _gdipPath.Widen(pen.RealizeGdiPen(), matrix.ToGdiMatrix(), (float)flatness);
+                GdipPath.Widen(pen.RealizeGdiPen(), matrix.ToGdiMatrix(), (float)flatness);
             }
             finally { Lock.ExitGdiPlus(); }
 #endif
-#if WPF || UWP
-            _pathGeometry = _pathGeometry.GetWidenedPathGeometry(pen.RealizeWpfPen());
+#if WPF || WUI
+            PathGeometry = PathGeometry.GetWidenedPathGeometry(pen.RealizeWpfPen());
 #endif
         }
 
@@ -2163,21 +2193,23 @@ namespace PdfSharp.Drawing
         /// <summary>
         /// Gets access to underlying Core graphics path.
         /// </summary>
-        internal CoreGraphicsPath _corePath;
+        internal CoreGraphicsPath CorePath;
+
+        const string AddStringMessage = "AddString: Converting a string into a graphical path is not available in CORE build.";
 #endif
 
 #if GDI
         /// <summary>
         /// Gets access to underlying GDI+ graphics path.
         /// </summary>
-        internal GraphicsPath _gdipPath;
+        internal GraphicsPath GdipPath;
 #endif
 
-#if WPF || UWP
+#if WPF || WUI
         /// <summary>
-        /// Gets access to underlying WPF/WinRT path geometry.
+        /// Gets access to underlying WPF/WUI path geometry.
         /// </summary>
-        internal PathGeometry _pathGeometry;
+        internal PathGeometry PathGeometry;
 #endif
     }
 }

@@ -38,7 +38,7 @@ namespace PdfSharp.Charting.Renderers
             }
 
             // If the ratio between yMax to yMin is more than 1.2, the smallest number will be set too zero.
-            // It's Excel's behavior.
+            // It’s Excel’s behavior.
             if (yMin != 0)
             {
                 if (yMin < 0 && yMax < 0)

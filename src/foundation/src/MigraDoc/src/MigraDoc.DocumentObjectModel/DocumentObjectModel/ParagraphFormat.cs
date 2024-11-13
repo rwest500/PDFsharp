@@ -1,4 +1,4 @@
-// MigraDoc - Creating Documents on the Fly
+﻿// MigraDoc - Creating Documents on the Fly
 // See the LICENSE file in the solution root for more information.
 
 namespace MigraDoc.DocumentObjectModel
@@ -153,7 +153,7 @@ namespace MigraDoc.DocumentObjectModel
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether to keep all the paragraph's lines on the same page.
+        /// Gets or sets a value indicating whether to keep all the paragraph’s lines on the same page.
         /// </summary>
         public bool KeepTogether
         {
@@ -251,7 +251,7 @@ namespace MigraDoc.DocumentObjectModel
         }
 
         /// <summary>
-        /// Gets or sets the space that's inserted after the paragraph.
+        /// Gets or sets the space that’s inserted after the paragraph.
         /// </summary>
         public Unit SpaceAfter
         {
@@ -260,7 +260,7 @@ namespace MigraDoc.DocumentObjectModel
         }
 
         /// <summary>
-        /// Gets or sets the space that's inserted before the paragraph.
+        /// Gets or sets the space that’s inserted before the paragraph.
         /// </summary>
         public Unit SpaceBefore
         {
@@ -320,7 +320,7 @@ namespace MigraDoc.DocumentObjectModel
         {
             int pos = serializer.BeginContent(name);
 
-            if (!Values.Font.IsValueNullOrEmpty() && Parent!.GetType() != typeof(Style)) // BUG??? "!" added.
+            if (!Values.Font.IsValueNullOrEmpty() && Parent!.GetType() != typeof(Style))
                 Font.Serialize(serializer);
 
             // If a refFormat is specified, it is important to compare the fields and not the properties.

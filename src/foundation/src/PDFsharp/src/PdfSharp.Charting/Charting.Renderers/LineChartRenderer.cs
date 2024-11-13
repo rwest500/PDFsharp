@@ -63,7 +63,7 @@ namespace PdfSharp.Charting.Renderers
             // Calculate rects and positions.
             CalcLayout();
 
-            // Calculated remaining plot area, now it's safe to format.
+            // Calculated remaining plot area, now it’s safe to format.
             LinePlotAreaRenderer lpar = new LinePlotAreaRenderer(_rendererParms);
             lpar.Format();
         }
@@ -89,7 +89,7 @@ namespace PdfSharp.Charting.Renderers
             PlotAreaBorderRenderer pabr = new PlotAreaBorderRenderer(_rendererParms);
             pabr.Draw();
 
-            // Draw line chart's plot area.
+            // Draw line chart’s plot area.
             LinePlotAreaRenderer lpar = new LinePlotAreaRenderer(_rendererParms);
             lpar.Draw();
 
@@ -116,7 +116,7 @@ namespace PdfSharp.Charting.Renderers
 
             var seriesColl = cri.Chart.SeriesCollection;
             cri.SeriesRendererInfos = new SeriesRendererInfo[seriesColl.Count];
-            for (int idx = 0; idx < seriesColl.Count; ++idx)
+            for (int idx = 0; idx < seriesColl.Count; idx++)
             {
                 SeriesRendererInfo sri = new SeriesRendererInfo();
                 sri.Series = seriesColl[idx];
@@ -153,8 +153,8 @@ namespace PdfSharp.Charting.Renderers
                     mri.MarkerBackgroundColor = sri.LineFormat.Color;
 
                 mri.MarkerSize = sri.Series.MarkerSize;
-                if (mri.MarkerSize == 0)
-                    mri.MarkerSize = 7;
+                if (mri.MarkerSize.Point == 0)
+                    mri.MarkerSize = XUnit.FromPoint(7);
 
                 if (!sri.Series._markerStyleInitialized)
                     //mri.MarkerStyle = (MarkerStyle)(seriesIndex % (Enum.GetNames(typeof(MarkerStyle)).Length - 1) + 1);

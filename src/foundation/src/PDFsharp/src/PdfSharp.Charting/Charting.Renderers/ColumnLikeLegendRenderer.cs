@@ -19,7 +19,7 @@ namespace PdfSharp.Charting.Renderers
         { }
 
         /// <summary>
-        /// Initializes the legend's renderer info. Each data series will be represented through
+        /// Initializes the legend’s renderer info. Each data series will be represented through
         /// a legend entry renderer info.
         /// </summary>
         internal override RendererInfo Init()

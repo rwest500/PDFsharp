@@ -1,4 +1,5 @@
-
+// MigraDoc - Creating Documents on the Fly
+// See the LICENSE file in the solution root for more information.
 
 namespace MigraDoc.DocumentObjectModel.Tests
 {
@@ -11,7 +12,6 @@ namespace MigraDoc.DocumentObjectModel.Tests
 
         public void SetValue<T>(T value, ref T field)
         { }
-
 
         public int SomeValue
         {

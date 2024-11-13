@@ -1,9 +1,13 @@
-﻿// ReSharper disable once CheckNamespace
+﻿// PDFsharp - A .NET library for processing PDF
+// See the LICENSE file in the solution root for more information.
+
+// ReSharper disable once CheckNamespace
 namespace PdfSharp.BigGustave
 {
     internal readonly struct HeaderValidationResult
     {
-        public static readonly byte[] ExpectedHeader = {
+        public static readonly byte[] ExpectedHeader =
+        [
             137,
             80,
             78,
@@ -12,7 +16,7 @@ namespace PdfSharp.BigGustave
             10,
             26,
             10
-        };
+        ];
 
         public int Byte1 { get; }
 

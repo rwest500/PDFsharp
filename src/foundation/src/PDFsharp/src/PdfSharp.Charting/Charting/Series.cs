@@ -118,7 +118,7 @@ namespace PdfSharp.Charting
             set
             {
                 if (!Enum.IsDefined(typeof(MarkerStyle), value))
-                    throw new InvalidEnumArgumentException("value", (int)value, typeof(MarkerStyle));
+                    throw new InvalidEnumArgumentException(nameof(value), (int)value, typeof(MarkerStyle));
 
                 _markerStyle = value;
                 _markerStyleInitialized = true;
@@ -140,7 +140,7 @@ namespace PdfSharp.Charting
         public XColor MarkerBackgroundColor { get; set; } = XColor.Empty;
 
         /// <summary>
-        /// Gets or sets the chart type of the series if it's intended to be different than the
+        /// Gets or sets the chart type of the series if it’s intended to be different than the
         /// global chart type.
         /// </summary>
         public ChartType ChartType
@@ -149,7 +149,7 @@ namespace PdfSharp.Charting
             set
             {
                 if (!Enum.IsDefined(typeof(ChartType), value))
-                    throw new InvalidEnumArgumentException("value", (int)value, typeof(ChartType));
+                    throw new InvalidEnumArgumentException(nameof(value), (int)value, typeof(ChartType));
                 _chartType = value;
             }
         }

@@ -11,10 +11,10 @@ namespace PdfSharp.Drawing.BarCodes
         /// <summary>
         /// Initializes a new instance of the <see cref="CodeBase"/> class.
         /// </summary>
-        public CodeBase(string text, XSize size, CodeDirection direction)
+        protected CodeBase(string text, XSize size, CodeDirection direction)
         {
             _text = text;
-            _size = size;
+            Size = size;
             _direction = direction;
         }
 
@@ -45,19 +45,13 @@ namespace PdfSharp.Drawing.BarCodes
 
         //public static CodeBase FromType(CodeType type)
         //{
-        //  return FromType(type, String.Empty, XSize.Empty, CodeDirection.LeftToRight);
+        //  return FromType(type, "", XSize.Empty, CodeDirection.LeftToRight);
         //}
 
         /// <summary>
         /// Gets or sets the size.
         /// </summary>
-        public XSize Size
-        {
-            get => _size;
-            set => _size = value;
-        }
-
-        XSize _size;
+        public XSize Size { get; set; }
 
         /// <summary>
         /// Gets or sets the text the bar code shall represent.
@@ -71,7 +65,6 @@ namespace PdfSharp.Drawing.BarCodes
                 _text = value;
             }
         }
-
         string _text;
 
         /// <summary>
@@ -115,15 +108,16 @@ namespace PdfSharp.Drawing.BarCodes
             if (oldType == newType)
                 return new XVector();
 
-            XVector result;
-            Delta delta = Deltas[(int)oldType, (int)newType];
-            result = new XVector(size.Width / 2 * delta.X, size.Height / 2 * delta.Y);
+            var delta = Deltas[(int)oldType, (int)newType];
+            var result = new XVector(size.Width / 2 * delta.X, size.Height / 2 * delta.Y);
             return result;
         }
 
         struct Delta
         {
+#pragma warning disable IDE0290 // Use primary constructor
             public Delta(int x, int y)
+#pragma warning restore IDE0290 // Use primary constructor
             {
                 X = x;
                 Y = y;
@@ -134,15 +128,15 @@ namespace PdfSharp.Drawing.BarCodes
 
         static readonly Delta[,] Deltas = new Delta[9, 9]
         {
-              { new Delta(0, 0),   new Delta(1, 0),   new Delta(2, 0),  new Delta(0, 1),   new Delta(1, 1),   new Delta(2, 1),  new Delta(0, 2),  new Delta(1, 2),  new Delta(2, 2) },
-              { new Delta(-1, 0),  new Delta(0, 0),   new Delta(1, 0),  new Delta(-1, 1),  new Delta(0, 1),   new Delta(1, 1),  new Delta(-1, 2), new Delta(0, 2),  new Delta(1, 2) },
-              { new Delta(-2, 0),  new Delta(-1, 0),  new Delta(0, 0),  new Delta(-2, 1),  new Delta(-1, 1),  new Delta(0, 1),  new Delta(-2, 2), new Delta(-1, 2), new Delta(0, 2) },
-              { new Delta(0, -1),  new Delta(1, -1),  new Delta(2, -1), new Delta(0, 0),   new Delta(1, 0),   new Delta(2, 0),  new Delta(0, 1),  new Delta(1, 1),  new Delta(2, 1) },
-              { new Delta(-1, -1), new Delta(0, -1),  new Delta(1, -1), new Delta(-1, 0),  new Delta(0, 0),   new Delta(1, 0),  new Delta(-1, 1), new Delta(0, 1),  new Delta(1, 1) },
-              { new Delta(-2, -1), new Delta(-1, -1), new Delta(0, -1), new Delta(-2, 0),  new Delta(-1, 0),  new Delta(0, 0),  new Delta(-2, 1), new Delta(-1, 1), new Delta(0, 1) },
-              { new Delta(0, -2),  new Delta(1, -2),  new Delta(2, -2), new Delta(0, -1),  new Delta(1, -1),  new Delta(2, -1), new Delta(0, 0),  new Delta(1, 0),  new Delta(2, 0) },
-              { new Delta(-1, -2), new Delta(0, -2),  new Delta(1, -2), new Delta(-1, -1), new Delta(0, -1),  new Delta(1, -1), new Delta(-1, 0), new Delta(0, 0),  new Delta(1, 0) },
-              { new Delta(-2, -2), new Delta(-1, -2), new Delta(0, -2), new Delta(-2, -1), new Delta(-1, -1), new Delta(0, -1), new Delta(-2, 0), new Delta(-1, 0), new Delta(0, 0) },
+              { new(0, 0),   new(1, 0),   new(2, 0),  new(0, 1),   new(1, 1),   new(2, 1),  new(0, 2),  new(1, 2),  new(2, 2) },
+              { new(-1, 0),  new(0, 0),   new(1, 0),  new(-1, 1),  new(0, 1),   new(1, 1),  new(-1, 2), new(0, 2),  new(1, 2) },
+              { new(-2, 0),  new(-1, 0),  new(0, 0),  new(-2, 1),  new(-1, 1),  new(0, 1),  new(-2, 2), new(-1, 2), new(0, 2) },
+              { new(0, -1),  new(1, -1),  new(2, -1), new(0, 0),   new(1, 0),   new(2, 0),  new(0, 1),  new(1, 1),  new(2, 1) },
+              { new(-1, -1), new(0, -1),  new(1, -1), new(-1, 0),  new(0, 0),   new(1, 0),  new(-1, 1), new(0, 1),  new(1, 1) },
+              { new(-2, -1), new(-1, -1), new(0, -1), new(-2, 0),  new(-1, 0),  new(0, 0),  new(-2, 1), new(-1, 1), new(0, 1) },
+              { new(0, -2),  new(1, -2),  new(2, -2), new(0, -1),  new(1, -1),  new(2, -1), new(0, 0),  new(1, 0),  new(2, 0) },
+              { new(-1, -2), new(0, -2),  new(1, -2), new(-1, -1), new(0, -1),  new(1, -1), new(-1, 0), new(0, 0),  new(1, 0) },
+              { new(-2, -2), new(-1, -2), new(0, -2), new(-2, -1), new(-1, -1), new(0, -1), new(-2, 0), new(-1, 0), new(0, 0) },
         };
     }
 }

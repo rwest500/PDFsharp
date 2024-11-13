@@ -1,6 +1,7 @@
 // PDFsharp - A .NET library for processing PDF
 // See the LICENSE file in the solution root for more information.
 
+using PdfSharp.Internal;
 using PdfSharp.Pdf.IO;
 
 namespace PdfSharp.Pdf
@@ -28,7 +29,7 @@ namespace PdfSharp.Pdf
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
             if (value.Length == 0 || value[0] != '/')
-                throw new ArgumentException(PSSR.NameMustStartWithSlash);
+                throw new ArgumentException(PsMsgs.NameMustStartWithSlash);
 
             _value = value;
         }
@@ -102,7 +103,7 @@ namespace PdfSharp.Pdf
             if (value.Length == 0 || value[0] != '/')
                 return value;
 
-            return value[1..];
+            return value.Substring(1);
         }
 
         /// <summary>
@@ -110,7 +111,12 @@ namespace PdfSharp.Pdf
         /// </summary>
         internal override void WriteObject(PdfWriter writer)
         {
-            // TODO: what if Unicode character are part of the name? 
+            // TODO: what if Unicode character are part of the name?
+            // TODO: 7.3.5 Name objects: "In such situations, the sequence of bytes making up the name
+            //     object should be interpreted according to UTF-8, a variable-length byte-encoded
+            //     representation of Unicode in which the printable ASCII characters have the same
+            //     representations as in ASCII. This enables a name object to represent text virtually
+            //     in any natural language, subject to the implementation limit on the length of a name."
             writer.Write(this);
         }
 

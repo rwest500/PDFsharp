@@ -44,7 +44,7 @@ namespace PdfSharp.Charting
 
         #region Properties
         /// <summary>
-        /// Gets or sets the label's number format.
+        /// Gets or sets the label’s number format.
         /// </summary>
         public string Format { get; set; } = "";
 

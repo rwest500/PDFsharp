@@ -16,7 +16,7 @@ using PdfSharp.Fonts;
 using PdfSharp.Quality;
 
 #pragma warning disable 1591
-namespace PdfSharp.Features
+namespace PdfSharp.Features.Font
 {
     public class RotisWinAnsiTester : Feature
     {
@@ -45,7 +45,6 @@ namespace PdfSharp.Features
             var rotisSize = 30;
             XFont font;
 
-
 #if RotisSerifPro
             gfx.DrawString("Rotis Serif Pro", defaultFont, XBrushes.Black, 40, 40);
 
@@ -55,7 +54,6 @@ namespace PdfSharp.Features
             font = new XFont("Rotis Serif Pro", rotisSize, XFontStyleEx.Regular, pdfOptions);
             gfx.DrawString("Rotis Serif Pro Regular: kviec", font, XBrushes.Black, 40, 120);
 #endif
-
 
 #if bold
             gfx.DrawString("bold", defaultFont, XBrushes.Black, 40, 160);
@@ -67,7 +65,6 @@ namespace PdfSharp.Features
             font = new XFont("Rotis Serif Pro", rotisSize, XFontStyleEx.Bold, pdfOptions);
             gfx.DrawString("Rotis Serif Pro Bold: kviec", font, XBrushes.Black, 40, 200);
 #endif
-
 
 #if italic
             gfx.DrawString("italic", defaultFont, XBrushes.Black, 40, 240);
@@ -82,7 +79,6 @@ namespace PdfSharp.Features
 
 #endif
 
-
 #if RotisSemiSansPro
             gfx.DrawString("Rotis Semi Sans Pro", defaultFont, XBrushes.Black, 40, 340);
 
@@ -92,7 +88,6 @@ namespace PdfSharp.Features
             font = new XFont("Rotis Semi Sans Pro", rotisSize, XFontStyleEx.Regular, pdfOptions);
             gfx.DrawString("Rotis Semi Sans Pro Regular: kviec", font, XBrushes.Black, 40, 420);
 #endif
-
 
 #if bold
             gfx.DrawString("bold", defaultFont, XBrushes.Black, 40, 460);
@@ -104,7 +99,6 @@ namespace PdfSharp.Features
             font = new XFont("Rotis Semi Sans Pro", rotisSize, XFontStyleEx.Bold, pdfOptions);
             gfx.DrawString("Rotis Semi Sans Pro Bold: kviec", font, XBrushes.Black, 40, 500);
 #endif
-
 
 #if italic
             gfx.DrawString("italic", defaultFont, XBrushes.Black, 40, 540);
@@ -142,7 +136,7 @@ namespace PdfSharp.Features
         }
 
         /// <summary>
-        /// The internal names that uniquely identify a font's type faces (i.e. a physical font file).
+        /// The internal names that uniquely identify a font’s type faces (i.e. a physical font file).
         /// Used in the first parameter of the FontResolverInfo constructor.
         /// </summary>
         static class FaceNames
@@ -168,8 +162,8 @@ namespace PdfSharp.Features
         /// Converts specified information about a required typeface into a specific font.
         /// </summary>
         /// <param name="familyName">Name of the font family.</param>
-        /// <param name="isBold">Set to <c>true</c> when a bold fontface is required.</param>
-        /// <param name="isItalic">Set to <c>true</c> when an italic fontface is required.</param>
+        /// <param name="isBold">Set to <c>true</c> when a bold font face is required.</param>
+        /// <param name="isItalic">Set to <c>true</c> when an italic font face is required.</param>
         /// <returns>
         /// Information about the physical font, or null if the request cannot be satisfied.
         /// </returns>
@@ -196,7 +190,6 @@ namespace PdfSharp.Features
 
             string lowerFamilyName = familyName.ToLower();
 
-
             //return PlatformFontResolver.ResolveTypeface("Calibri", isBold, isItalic);
 
             // Looking for a Rotis font?
@@ -205,11 +198,10 @@ namespace PdfSharp.Features
                 var simulateBold = false;
                 var simulateItalic = false;
 
-
                 string? faceName = null;
 
                 // In this sample family names are case sensitive. You can relax this in your own implementation
-                // and make them case insensitive.
+                // and make them case-insensitive.
                 switch (lowerFamilyName)
                 {
 #if RotisSerifPro
@@ -239,13 +231,11 @@ namespace PdfSharp.Features
                         break;
 #endif
 
-
 #if RotisSemiSansPro
                     case FamilyNames.RotisSemiSansPro:
 #if regular
                         faceName = FaceNames.RotisSemiSansPro;
 #endif
-
                         if (isBold)
                         {
 #if bold
@@ -315,7 +305,6 @@ namespace PdfSharp.Features
 
 #endif
 
-
 #if RotisSemiSansPro
 
 #if regular
@@ -336,7 +325,7 @@ namespace PdfSharp.Features
 #endif
             }
             // PDFsharp never calls GetFont with a face name that was not returned by ResolveTypeface.
-            throw new ArgumentException(String.Format("Invalid face name '{0}'", faceName));
+            throw new ArgumentException($"Invalid face name '{faceName}'");
         }
     }
 
@@ -366,7 +355,6 @@ namespace PdfSharp.Features
 #endif
 
 #endif
-
 
 #if RotisSemiSansPro
 

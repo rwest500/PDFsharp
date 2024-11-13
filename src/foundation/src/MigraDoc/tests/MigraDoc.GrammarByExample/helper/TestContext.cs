@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using GdiGrammarByExample;
+using PdfSharp.TestHelper;
 
 namespace MigraDoc.GrammarByExample
 {
@@ -15,7 +16,7 @@ namespace MigraDoc.GrammarByExample
         public TestContext()
         {
             var assembly = GetType().Assembly;
-            DeploymentDirectory = Path.GetDirectoryName(assembly.Location)!;
+            DeploymentDirectory = Path.GetDirectoryName(assembly.GetOriginalLocation())!;
             //Console.WriteLine($"DeploymentDirectory {DeploymentDirectory})");
 
             var folder0 = @"D:\GBE-Output\";
@@ -31,7 +32,18 @@ namespace MigraDoc.GrammarByExample
 #elif WPF
             const string tag = "WPF";
 #endif
-            var folder = $"Testrun-{tag}-" + now.ToString("yyyy-MM-dd_HH-mm-ss");
+#if NET8_0
+            const string tag2 = "NET80";
+#elif NET6_0
+            const string tag2 = "NET60";
+#elif NET462
+            const string tag2 = "NET462";
+#elif NETSTANDARD2_0
+            const string tag2 = "NETstandard20";
+#else
+            const string tag2 = "UNKOWN";
+#endif
+            var folder = $"Testrun-{tag}-{tag2}-" + now.ToString("yyyy-MM-dd_HH-mm-ss");
             OutputDirectory = folder0 + folder;
             //Console.WriteLine($"OutputDirectory {OutputDirectory})");
             Directory.CreateDirectory(DdlGbeTestBase.WslPathHack(OutputDirectory));

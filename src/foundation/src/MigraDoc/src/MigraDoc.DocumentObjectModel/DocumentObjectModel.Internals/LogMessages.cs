@@ -20,7 +20,6 @@ namespace MigraDoc.DocumentObjectModel.Internals
             this ILogger logger,
             LogLevel level);
 
-
         // What to log?
 
         // Image not found (not loadable, not found, ...)
@@ -29,6 +28,7 @@ namespace MigraDoc.DocumentObjectModel.Internals
         // Differences in RTF vs Word (decimal tab)
         // Performance optimization
 
-        // TODO remove all Console.WriteLine calls.
+        // TODO Use logging instead of Con/sole.WriteLine.
+        // TODO remove all Con/sole.WriteLine calls.
     }
 }

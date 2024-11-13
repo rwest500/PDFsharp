@@ -246,7 +246,6 @@ namespace PdfSharp.Drawing
         /// </summary>
         /// <param name="vector1">The vector from which vector2 is subtracted.</param>
         /// <param name="vector2">The vector to subtract from vector1.</param>
-        /// <returns></returns>
         public static XVector Subtract(XVector vector1, XVector vector2)
             => new(vector1._x - vector2._x, vector1._y - vector2._y);
 
@@ -378,7 +377,7 @@ namespace PdfSharp.Drawing
         {
             get
             {
-                const string format = Config.SignificantFigures10;
+                const string format = Config.SignificantDecimalPlaces10;
                 return String.Format(CultureInfo.InvariantCulture, "vector=({0:" + format + "}, {1:" + format + "})", _x, _y);
             }
         }

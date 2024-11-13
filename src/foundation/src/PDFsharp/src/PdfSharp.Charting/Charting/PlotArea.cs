@@ -49,7 +49,7 @@ namespace PdfSharp.Charting
 
         #region Properties
         /// <summary>
-        /// Gets the line format of the plot area's border.
+        /// Gets the line format of the plot area’s border.
         /// </summary>
         public LineFormat LineFormat => _lineFormat ??= new LineFormat(this);
         // ReSharper disable once InconsistentNaming because this is old code

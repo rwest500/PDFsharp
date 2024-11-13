@@ -1,4 +1,7 @@
-﻿namespace PdfSharp.Pdf
+﻿// PDFsharp - A .NET library for processing PDF
+// See the LICENSE file in the solution root for more information.
+
+namespace PdfSharp.Pdf
 {
     /// <summary>
     /// Provides methods to handle keys that may contain a PdfArray or a single PdfItem.
@@ -48,7 +51,6 @@
                 array.Elements.Add(value);
         }
 
-
         /// <summary>
         /// Gets all PdfItems saved in the given key.
         /// </summary>
@@ -65,7 +67,6 @@
             else if (obj is not null)
                 yield return obj;
         }
-
 
         IEnumerable<PdfItem> Get(string key, Func<PdfItem, bool> predicate)
         {
@@ -104,7 +105,6 @@
             return Get<T>(key, x => x.Equals(value));
         }
 
-
         /// <summary>
         /// Returns true if the given key contains a PdfItem of type T matching a predicate.
         /// </summary>
@@ -136,7 +136,6 @@
         {
             return Contains<T>(key, x => x.Equals(value));
         }
-
 
         bool Remove(string key, Func<PdfItem, bool> predicate)
         {

@@ -1,15 +1,16 @@
 ﻿// PDFsharp - A .NET library for processing PDF
 // See the LICENSE file in the solution root for more information.
 
-#define VERBOSE_
-
 using System.Text;
+using PdfSharp.Internal;
+using PdfSharp.Drawing;
 
 using Fixed = System.Int32;
 using FWord = System.Int16;
 using UFWord = System.UInt16;
 
 // ReSharper disable InconsistentNaming
+// ReSharper disable IdentifierTypo
 
 namespace PdfSharp.Fonts.OpenType
 {
@@ -23,7 +24,14 @@ namespace PdfSharp.Fonts.OpenType
     /// </summary>
     enum WinEncodingId
     {
-        Symbol, Unicode
+        Symbol = 0,
+        UnicodeUSC_2 = 1,
+        //ShiftJIS = 2,
+        //PRC = 3,
+        //Big5 = 4,
+        //Wansung = 5,
+        //Johab = 6,
+        UnicodeUSC_4 = 10
     }
 
     /// <summary>
@@ -34,8 +42,8 @@ namespace PdfSharp.Fonts.OpenType
     {
         public WinEncodingId encodingId; // Windows encoding ID.
         public ushort format; // Format number is set to 4.
-        public ushort length; // This is the length in bytes of the subtable. 
-        public ushort language; // This field must be set to zero for all cmap subtables whose platform IDs are other than Macintosh (platform ID 1). 
+        public ushort length; // This is the length in bytes of the sub-table. 
+        public ushort language; // This field must be set to zero for all cmap sub-tables whose platform IDs are other than Macintosh (platform ID 1). 
         public ushort segCountX2; // 2 x segCount.
         public ushort searchRange; // 2 x (2**floor(log2(segCount)))
         public ushort entrySelector; // log2(searchRange/2)
@@ -47,7 +55,7 @@ namespace PdfSharp.Fonts.OpenType
         public int glyphCount; // = (length - (16 + 4 * 2 * segCount)) / 2;
         public ushort[] glyphIdArray = null!;     // Glyph index array (arbitrary length)
 
-        public CMap4(OpenTypeFontface fontData, WinEncodingId encodingId)
+        public CMap4(OpenTypeFontFace fontData, WinEncodingId encodingId)
             : base(fontData, "----")
         {
             this.encodingId = encodingId;
@@ -83,8 +91,6 @@ namespace PdfSharp.Fonts.OpenType
                 for (int idx = 0; idx < segCount; idx++)
                     endCount[idx] = _fontData.ReadUShort();
 
-                //ASSERT_CONDITION(m_EndCount[segs - 1] == 0xFFFF, "Out of Index");
-
                 // Read reserved pad.
                 _fontData.ReadUShort();
 
@@ -102,7 +108,64 @@ namespace PdfSharp.Fonts.OpenType
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException(PSSR.ErrorReadingFontData, ex);
+                throw new InvalidOperationException(PsMsgs.ErrorReadingFontData, ex);
+            }
+        }
+    }
+
+    /// <summary>
+    /// CMap format 12: Segmented coverage.
+    /// The Windows standard format.
+    /// </summary>
+    internal class CMap12 : OpenTypeFontTable
+    {
+        internal struct SequentialMapGroup
+        {
+            public UInt32 startCharCode;// First character code in this group.
+            public UInt32 endCharCode; // Last character code in this group.
+            public UInt32 startGlyphIndex; // Glyph index corresponding to the starting character code.
+        }
+
+        public WinEncodingId encodingId; // Windows encoding ID.
+        public UInt16 format; // Subtable format; set to 12.
+        public UInt32 length; // Byte length of this subtable (including the header).
+        public UInt32 language; // This field must be set to zero for all cmap subtables whose platform IDs are other than Macintosh (platform ID 1).
+        public UInt32 numGroups; // Number of groupings which follow.
+
+        public SequentialMapGroup[] groups = null!;
+
+        public CMap12(OpenTypeFontFace fontData, WinEncodingId encodingId)
+            : base(fontData, "----")
+        {
+            this.encodingId = encodingId;
+            Read();
+        }
+
+        internal void Read()
+        {
+            try
+            {
+                // m_EncodingID = encID;
+                format = _fontData!.ReadUShort(); // NRT
+                Debug.Assert(format == 12, "Only format 12 expected.");
+                _fontData.ReadUShort(); // Reserved.
+                length = _fontData.ReadULong();
+                language = _fontData.ReadULong(); // Always null in Windows.
+                numGroups = _fontData.ReadULong();
+
+                groups = new SequentialMapGroup[numGroups];
+
+                for (int i = 0; i < groups.Length; i++)
+                {
+                    ref var group = ref groups[i];
+                    group.startCharCode = _fontData.ReadULong();
+                    group.endCharCode = _fontData.ReadULong();
+                    group.startGlyphIndex = _fontData.ReadULong();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(PsMsgs.ErrorReadingFontData, ex);
             }
         }
     }
@@ -124,11 +187,12 @@ namespace PdfSharp.Fonts.OpenType
         public bool symbol;
 
         public CMap4 cmap4 = null!;
+        public CMap12 cmap12 = null!;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CMapTable"/> class.
         /// </summary>
-        public CMapTable(OpenTypeFontface fontData)
+        public CMapTable(OpenTypeFontFace fontData)
             : base(fontData, Tag)
         {
             Read();
@@ -142,10 +206,6 @@ namespace PdfSharp.Fonts.OpenType
 
                 version = _fontData.ReadUShort();
                 numTables = _fontData.ReadUShort();
-#if DEBUG_
-                if (_fontData.Name == "Cambria")
-                    Debug-Break.Break();
-#endif
 
                 bool success = false;
                 for (int idx = 0; idx < numTables; idx++)
@@ -157,16 +217,30 @@ namespace PdfSharp.Fonts.OpenType
                     int currentPosition = _fontData.Position;
 
                     // Just read Windows stuff.
-                    if (platformId == PlatformId.Win && (encodingId == WinEncodingId.Symbol || encodingId == WinEncodingId.Unicode))
+                    if (platformId == PlatformId.Win &&
+                        encodingId is WinEncodingId.Symbol or WinEncodingId.UnicodeUSC_2 or WinEncodingId.UnicodeUSC_4)
                     {
                         symbol = encodingId == WinEncodingId.Symbol;
 
                         _fontData.Position = tableOffset + offset;
-                        cmap4 = new CMap4(_fontData, encodingId);
+
+                        var format = _fontData.ReadUShort();
+                        _fontData.Position = tableOffset + offset;
+
+                        if (format == 4)
+                        {
+                            cmap4 = new(_fontData, encodingId);
+                        }
+                        else if (format == 12)
+                        {
+                            cmap12 = new(_fontData, encodingId);
+                        }
+
                         _fontData.Position = currentPosition;
-                        // We have found what we are looking for, so break.
+
+                        // We have found what we are looking for, but we do not break as there may be another hit.
                         success = true;
-                        break;
+                        // break;
                     }
                 }
                 if (!success)
@@ -174,7 +248,158 @@ namespace PdfSharp.Fonts.OpenType
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException(PSSR.ErrorReadingFontData, ex);
+                throw new InvalidOperationException(PsMsgs.ErrorReadingFontData, ex);
+            }
+        }
+    }
+
+    /// <summary>
+    /// This table adds support for multi-colored glyphs in a manner that integrates with the rasterizers
+    /// of existing text engines and that is designed to be easy to support with current OpenType font files.
+    /// </summary>
+    class ColorTable : OpenTypeFontTable
+    {
+        public const string Tag = TableTagNames.COLR;
+
+        internal struct GlyphRecord
+        {
+            public ushort glyphId;
+            public ushort firstLayerIndex;
+            public ushort numLayers;
+        }
+
+        internal struct LayerRecord
+        {
+            public ushort glyphId;
+            public ushort paletteIndex;
+        }
+
+        public ushort version;
+        // version 0 tables start
+        public ushort numBaseGlyphRecords;  // Number of BaseGlyph records.
+        public uint baseGlyphRecordsOffset;  // Offset to baseGlyphRecords array, from beginning of COLR table.
+        public uint layerRecordsOffset;  // Offset to layerRecords array, from beginning of COLR table.
+        public ushort numLayerRecords;  // Number of Layer records.
+        // version 0 tables end
+
+        public GlyphRecord[] baseGlyphRecords = [];
+        public LayerRecord[] layerRecords = [];
+
+        // Helper array that contains just the glyphIds for the baseGlyphRecords.
+        private int[] glyphRecordsHelperArray = [];
+
+        public ColorTable(OpenTypeFontFace fontData)
+            : base(fontData, Tag)
+        {
+            Read(fontData);
+        }
+
+        public GlyphRecord? GetLayers(int glyphId)
+        {
+            var index = Array.BinarySearch(glyphRecordsHelperArray, glyphId);
+            if (index >= 0)
+                return baseGlyphRecords[index];
+            return null;
+        }
+
+        void Read(OpenTypeFontFace fontData)
+        {
+            try
+            {
+                var tableStart = fontData.Position;
+
+                version = fontData.ReadUShort();
+                Debug.Assert(version == 0 || version == 1, "Version 0 or 1 of COLR table is expected");
+                numBaseGlyphRecords = fontData.ReadUShort();
+                baseGlyphRecordsOffset = fontData.ReadULong();
+                layerRecordsOffset = fontData.ReadULong();
+                numLayerRecords = fontData.ReadUShort();
+
+                baseGlyphRecords = new GlyphRecord[numBaseGlyphRecords];
+                glyphRecordsHelperArray = new int[numBaseGlyphRecords];
+                layerRecords = new LayerRecord[numLayerRecords];
+
+                fontData.Position = tableStart + (int)baseGlyphRecordsOffset;
+                for (var i = 0; i < numBaseGlyphRecords; i++)
+                {
+                    var glyphId = fontData.ReadUShort();
+                    baseGlyphRecords[i] = new()
+                    {
+                        glyphId = glyphId,
+                        firstLayerIndex = fontData.ReadUShort(),
+                        numLayers = fontData.ReadUShort()
+                    };
+                    glyphRecordsHelperArray[i] = glyphId;
+                }
+                fontData.Position = tableStart + (int)layerRecordsOffset;
+                for (var i = 0; i < numLayerRecords; i++)
+                {
+                    layerRecords[i] = new()
+                    {
+                        glyphId = fontData.ReadUShort(),
+                        paletteIndex = fontData.ReadUShort()
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(PsMsgs.ErrorReadingFontData, ex);
+            }
+        }
+    }
+
+    /// <summary>
+    /// This table is a set of one or more palettes, each containing a predefined number of color records.
+    /// It may also contain 'name' table IDs describing the palettes and their entries.
+    /// </summary>
+    class ColorPalletTable : OpenTypeFontTable
+    {
+        public const string Tag = TableTagNames.CPAL;
+
+        public ushort version;
+        public ushort numPaletteEntries;  // Number of palette entries in each palette.
+        public ushort numPalettes;  // Number of palettes in the table.
+        public ushort numColorRecords;  // Total number of color records, combined for all palettes.
+        public uint colorRecordsArrayOffset;  // Offset from the beginning of CPAL table to the first ColorRecord.
+        public ushort[] colorRecordIndices = [];  // Index of each palette’s first color record in the combined color record array.
+        public XColor[] colorRecords = [];
+
+        public ColorPalletTable(OpenTypeFontFace fontData)
+            : base(fontData, Tag)
+        {
+            Read(fontData);
+        }
+
+        void Read(OpenTypeFontFace fontData)
+        {
+            try
+            {
+                var tableStart = fontData.Position;
+
+                version = fontData.ReadUShort();
+                numPaletteEntries = fontData.ReadUShort();
+                numPalettes = fontData.ReadUShort();
+                numColorRecords = fontData.ReadUShort();
+                colorRecordsArrayOffset = fontData.ReadULong();
+
+                colorRecordIndices = new ushort[numPalettes];
+                for (int idx = 0; idx < numPalettes; idx++)
+                {
+                    colorRecordIndices[idx] = fontData.ReadUShort();
+                }
+                colorRecords = new XColor[numColorRecords];
+                for (int idx = 0; idx < numColorRecords; idx++)
+                {
+                    var blue = fontData.ReadByte();
+                    var green = fontData.ReadByte();
+                    var red = fontData.ReadByte();
+                    var alpha = fontData.ReadByte();
+                    colorRecords[idx] = XColor.FromArgb(alpha, red, green, blue);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(PsMsgs.ErrorReadingFontData, ex);
             }
         }
     }
@@ -203,7 +428,7 @@ namespace PdfSharp.Fonts.OpenType
         public short indexToLocFormat; // 0 for short offsets, 1 for long
         public short glyphDataFormat; // 0 for current format
 
-        public FontHeaderTable(OpenTypeFontface fontData)
+        public FontHeaderTable(OpenTypeFontFace fontData)
             : base(fontData, Tag)
         {
             Read();
@@ -233,7 +458,7 @@ namespace PdfSharp.Fonts.OpenType
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException(PSSR.ErrorReadingFontData, ex);
+                throw new InvalidOperationException(PsMsgs.ErrorReadingFontData, ex);
             }
         }
     }
@@ -266,7 +491,7 @@ namespace PdfSharp.Fonts.OpenType
         public short metricDataFormat;
         public ushort numberOfHMetrics;
 
-        public HorizontalHeaderTable(OpenTypeFontface fontData)
+        public HorizontalHeaderTable(OpenTypeFontFace fontData)
             : base(fontData, Tag)
         {
             Read();
@@ -296,7 +521,7 @@ namespace PdfSharp.Fonts.OpenType
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException(PSSR.ErrorReadingFontData, ex);
+                throw new InvalidOperationException(PsMsgs.ErrorReadingFontData, ex);
             }
         }
     }
@@ -308,7 +533,7 @@ namespace PdfSharp.Fonts.OpenType
         public ushort advanceWidth;
         public short lsb;
 
-        public HorizontalMetrics(OpenTypeFontface fontData)
+        public HorizontalMetrics(OpenTypeFontFace fontData)
             : base(fontData, Tag)
         {
             Read();
@@ -323,7 +548,7 @@ namespace PdfSharp.Fonts.OpenType
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException(PSSR.ErrorReadingFontData, ex);
+                throw new InvalidOperationException(PsMsgs.ErrorReadingFontData, ex);
             }
         }
     }
@@ -340,7 +565,7 @@ namespace PdfSharp.Fonts.OpenType
         public HorizontalMetrics[] Metrics = default!;
         public FWord[] LeftSideBearing = default!;
 
-        public HorizontalMetricsTable(OpenTypeFontface fontData)
+        public HorizontalMetricsTable(OpenTypeFontFace fontData)
             : base(fontData, Tag)
         {
             Read();
@@ -374,7 +599,7 @@ namespace PdfSharp.Fonts.OpenType
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException(PSSR.ErrorReadingFontData, ex);
+                throw new InvalidOperationException(PsMsgs.ErrorReadingFontData, ex);
             }
         }
     }
@@ -384,7 +609,7 @@ namespace PdfSharp.Fonts.OpenType
     {
         public const string Tag = TableTagNames.VHea;
 
-        // code comes from HorizontalHeaderTable
+        // Code comes from HorizontalHeaderTable.
         public Fixed Version; // 0x00010000 for Version 1.0.
         public FWord Ascender; // Typographic ascent. (Distance from baseline of highest Ascender) 
         public FWord Descender; // Typographic descent. (Distance from baseline of lowest Descender) 
@@ -403,7 +628,7 @@ namespace PdfSharp.Fonts.OpenType
         public short metricDataFormat;
         public ushort numberOfHMetrics;
 
-        public VerticalHeaderTable(OpenTypeFontface fontData)
+        public VerticalHeaderTable(OpenTypeFontFace fontData)
             : base(fontData, Tag)
         {
             Read();
@@ -433,7 +658,7 @@ namespace PdfSharp.Fonts.OpenType
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException(PSSR.ErrorReadingFontData, ex);
+                throw new InvalidOperationException(PsMsgs.ErrorReadingFontData, ex);
             }
         }
     }
@@ -446,7 +671,7 @@ namespace PdfSharp.Fonts.OpenType
         public ushort advanceWidth;
         public short lsb;
 
-        public VerticalMetrics(OpenTypeFontface fontData)
+        public VerticalMetrics(OpenTypeFontFace fontData)
             : base(fontData, Tag)
         {
             Read();
@@ -461,7 +686,7 @@ namespace PdfSharp.Fonts.OpenType
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException(PSSR.ErrorReadingFontData, ex);
+                throw new InvalidOperationException(PsMsgs.ErrorReadingFontData, ex);
             }
         }
     }
@@ -477,11 +702,11 @@ namespace PdfSharp.Fonts.OpenType
         // UNDONE
         public const string Tag = TableTagNames.VMtx;
 
-        // code comes from HorizontalMetricsTable
+        // Code comes from HorizontalMetricsTable.
         public HorizontalMetrics[] metrics;
         public FWord[] leftSideBearing;
 
-        public VerticalMetricsTable(OpenTypeFontface fontData)
+        public VerticalMetricsTable(OpenTypeFontFace fontData)
             : base(fontData, Tag)
         {
             Read();
@@ -494,7 +719,7 @@ namespace PdfSharp.Fonts.OpenType
             {
                 var hhea = _fontData!.hhea;
                 var maxp = _fontData.maxp;
-                if (hhea != null && maxp != null)
+                if (hhea != null! && maxp != null!)
                 {
                     int numMetrics = hhea.numberOfHMetrics; //->NumberOfHMetrics();
                     int numLsbs = maxp.numGlyphs - numMetrics;
@@ -504,7 +729,7 @@ namespace PdfSharp.Fonts.OpenType
 
                     metrics = new HorizontalMetrics[numMetrics];
                     for (int idx = 0; idx < numMetrics; idx++)
-                        metrics[idx] = new HorizontalMetrics(_fontData);
+                        metrics[idx] = new(_fontData);
 
                     if (numLsbs > 0)
                     {
@@ -516,7 +741,7 @@ namespace PdfSharp.Fonts.OpenType
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException(PSSR.ErrorReadingFontData, ex);
+                throw new InvalidOperationException(PsMsgs.ErrorReadingFontData, ex);
             }
         }
     }
@@ -548,7 +773,7 @@ namespace PdfSharp.Fonts.OpenType
         public ushort maxComponentElements;
         public ushort maxComponentDepth;
 
-        public MaximumProfileTable(OpenTypeFontface fontData)
+        public MaximumProfileTable(OpenTypeFontFace fontData)
             : base(fontData, Tag)
         {
             Read();
@@ -576,13 +801,13 @@ namespace PdfSharp.Fonts.OpenType
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException(PSSR.ErrorReadingFontData, ex);
+                throw new InvalidOperationException(PsMsgs.ErrorReadingFontData, ex);
             }
         }
     }
 
     /// <summary>
-    /// The naming table allows multilingual strings to be associated with the OpenTypeTM font file.
+    /// The naming table allows multilingual strings to be associated with the OpenType font file.
     /// These strings can represent copyright notices, font names, family names, style names, and so on.
     /// To keep this table short, the font manufacturer may wish to make a limited set of entries in some
     /// small set of languages; later, the font can be "localized" and the strings translated or added.
@@ -594,7 +819,7 @@ namespace PdfSharp.Fonts.OpenType
     /// For historical reasons, some applications which install fonts perform Version control using Macintosh
     /// platform (platform ID 1) strings from the 'name' table. Because of this, we strongly recommend that
     /// the 'name' table of all fonts include Macintosh platform strings and that the syntax of the Version
-    /// number (name id 5) follows the guidelines given in this document.
+    /// number (name ID 5) follows the guidelines given in this document.
     /// </summary>
     class NameTable : OpenTypeFontTable
     {
@@ -621,7 +846,7 @@ namespace PdfSharp.Fonts.OpenType
 
         byte[] bytes = default!;
 
-        public NameTable(OpenTypeFontface fontData)
+        public NameTable(OpenTypeFontFace fontData)
             : base(fontData, Tag)
         {
             Read();
@@ -651,7 +876,7 @@ namespace PdfSharp.Fonts.OpenType
                     byte[] value = new byte[nrec.length];
                     Buffer.BlockCopy(_fontData.FontSource.Bytes, DirectoryEntry.Offset + stringOffset + nrec.offset, value, 0, nrec.length);
 
-                    //Debug.WriteLine(nrec.platformID.ToString());
+                    //De/bug.WriteLine(nrec.platformID.ToString());
 
                     // Read font name and style in US English.
                     if (nrec.platformID is 0 or 3)
@@ -690,7 +915,7 @@ namespace PdfSharp.Fonts.OpenType
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException(PSSR.ErrorReadingFontData, ex);
+                throw new InvalidOperationException(PsMsgs.ErrorReadingFontData, ex);
             }
         }
 
@@ -774,7 +999,7 @@ namespace PdfSharp.Fonts.OpenType
         public ushort usBreakChar;
         public ushort usMaxContext;
 
-        public OS2Table(OpenTypeFontface fontData)
+        public OS2Table(OpenTypeFontFace fontData)
             : base(fontData, Tag)
         {
             Read();
@@ -832,7 +1057,7 @@ namespace PdfSharp.Fonts.OpenType
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException(PSSR.ErrorReadingFontData, ex);
+                throw new InvalidOperationException(PsMsgs.ErrorReadingFontData, ex);
             }
         }
 
@@ -842,7 +1067,7 @@ namespace PdfSharp.Fonts.OpenType
     }
 
     /// <summary>
-    /// This table contains additional information needed to use TrueType or OpenTypeTM fonts
+    /// This table contains additional information needed to use TrueType or OpenType fonts
     /// on PostScript printers. 
     /// </summary>
     class PostScriptTable : OpenTypeFontTable
@@ -859,7 +1084,7 @@ namespace PdfSharp.Fonts.OpenType
         public ulong minMemType1;
         public ulong maxMemType1;
 
-        public PostScriptTable(OpenTypeFontface fontData)
+        public PostScriptTable(OpenTypeFontFace fontData)
             : base(fontData, Tag)
         {
             Read();
@@ -881,7 +1106,7 @@ namespace PdfSharp.Fonts.OpenType
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException(PSSR.ErrorReadingFontData, ex);
+                throw new InvalidOperationException(PsMsgs.ErrorReadingFontData, ex);
             }
         }
     }
@@ -889,15 +1114,15 @@ namespace PdfSharp.Fonts.OpenType
     /// <summary>
     /// This table contains a list of values that can be referenced by instructions.
     /// They can be used, among other things, to control characteristics for different glyphs.
-    /// The length of the table must be an integral number of FWORD units. 
+    /// The length of the table must be an integral number of FWORD units.
     /// </summary>
     class ControlValueTable : OpenTypeFontTable
     {
         public const string Tag = TableTagNames.Cvt;
 
-        FWord[] array = null!; // List of n values referenceable by instructions. n is the number of FWORD items that fit in the size of the table.
+        FWord[] array = default!; // List of n values referenceable by instructions. n is the number of FWORD items that fit in the size of the table.
 
-        public ControlValueTable(OpenTypeFontface fontData)
+        public ControlValueTable(OpenTypeFontFace fontData)
             : base(fontData, Tag)
         {
             DirectoryEntry.Tag = TableTagNames.Cvt;
@@ -916,15 +1141,15 @@ namespace PdfSharp.Fonts.OpenType
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException(PSSR.ErrorReadingFontData, ex);
+                throw new InvalidOperationException(PsMsgs.ErrorReadingFontData, ex);
             }
         }
     }
 
     /// <summary>
     /// This table is similar to the CVT Program, except that it is only run once, when the font is first used.
-    /// It is used only for FDEFs and IDEFs. Thus the CVT Program need not contain function definitions.
-    /// However, the CVT Program may redefine existing FDEFs or IDEFs. 
+    /// It is used only for FDEFs and IDEFs. Thus, the CVT Program need not contain function definitions.
+    /// However, the CVT Program may redefine existing FDEFs or IDEFs.
     /// </summary>
     class FontProgram : OpenTypeFontTable
     {
@@ -932,7 +1157,7 @@ namespace PdfSharp.Fonts.OpenType
 
         byte[] bytes = null!; // Instructions. n is the number of BYTE items that fit in the size of the table.
 
-        public FontProgram(OpenTypeFontface fontData)
+        public FontProgram(OpenTypeFontFace fontData)
             : base(fontData, Tag)
         {
             DirectoryEntry.Tag = TableTagNames.Fpgm;
@@ -951,16 +1176,16 @@ namespace PdfSharp.Fonts.OpenType
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException(PSSR.ErrorReadingFontData, ex);
+                throw new InvalidOperationException(PsMsgs.ErrorReadingFontData, ex);
             }
         }
     }
 
     /// <summary>
-    /// The Control Value Program consists of a set of TrueType instructions that will be executed whenever the font or 
+    /// The Control Value Program consists of a set of TrueType instructions that will be executed whenever the font or
     /// point size or transformation matrix change and before each glyph is interpreted. Any instruction is legal in the
     /// CVT Program but since no glyph is associated with it, instructions intended to move points within a particular
-    /// glyph outline cannot be used in the CVT Program. The name 'prep' is anachronistic. 
+    /// glyph outline cannot be used in the CVT Program. The name 'prep' is anachronistic.
     /// </summary>
     class ControlValueProgram : OpenTypeFontTable
     {
@@ -968,7 +1193,7 @@ namespace PdfSharp.Fonts.OpenType
 
         byte[] bytes = null!; // Set of instructions executed whenever point size or font or transformation change. n is the number of BYTE items that fit in the size of the table.
 
-        public ControlValueProgram(OpenTypeFontface fontData)
+        public ControlValueProgram(OpenTypeFontFace fontData)
             : base(fontData, Tag)
         {
             DirectoryEntry.Tag = TableTagNames.Prep;
@@ -983,24 +1208,24 @@ namespace PdfSharp.Fonts.OpenType
                 int length = DirectoryEntry.Length;
                 bytes = new byte[length];
                 for (int idx = 0; idx < length; idx++)
-                    bytes[idx] = _fontData!.ReadByte();  // NRT
+                    bytes[idx] = _fontData!.ReadByte(); // NRT
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException(PSSR.ErrorReadingFontData, ex);
+                throw new InvalidOperationException(PsMsgs.ErrorReadingFontData, ex);
             }
         }
     }
 
     /// <summary>
     /// This table contains information that describes the glyphs in the font in the TrueType outline format.
-    /// Information regarding the rasterizer (scaler) refers to the TrueType rasterizer. 
+    /// Information regarding the rasterizer (scaler) refers to the TrueType rasterizer.
     /// </summary>
     class GlyphSubstitutionTable : OpenTypeFontTable
     {
         public const string Tag = TableTagNames.GSUB;
 
-        public GlyphSubstitutionTable(OpenTypeFontface fontData)
+        public GlyphSubstitutionTable(OpenTypeFontFace fontData)
             : base(fontData, Tag)
         {
             DirectoryEntry.Tag = TableTagNames.GSUB;
@@ -1015,7 +1240,7 @@ namespace PdfSharp.Fonts.OpenType
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException(PSSR.ErrorReadingFontData, ex);
+                throw new InvalidOperationException(PsMsgs.ErrorReadingFontData, ex);
             }
         }
     }

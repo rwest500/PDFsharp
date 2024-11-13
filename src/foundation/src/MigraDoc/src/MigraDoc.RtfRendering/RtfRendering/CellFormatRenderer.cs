@@ -1,4 +1,4 @@
-// MigraDoc - Creating Documents on the Fly
+﻿// MigraDoc - Creating Documents on the Fly
 // See the LICENSE file in the solution root for more information.
 
 using System.Diagnostics;
@@ -21,13 +21,13 @@ namespace MigraDoc.RtfRendering
         }
 
         /// <summary>
-        /// Renders the cell's shading, borders and so on (used by the RowRenderer).
+        /// Renders the cell’s shading, borders and so on (used by the RowRenderer).
         /// </summary>
         internal override void Render()
         {
             _useEffectiveValue = true;
             _coveringCell = _cellList.GetCoveringCell(_cell)!;
-            var borders = _cellList.GetEffectiveBorders(_coveringCell);
+            var borders = _cellList.GetEffectiveBordersRtf(_coveringCell);
             if (_cell.Column!.Index != _coveringCell.Column!.Index) // The "!" are needed here as some properties may be null if DOM objects are not added to a document.
                 return;
 
@@ -92,7 +92,7 @@ namespace MigraDoc.RtfRendering
         {
             int rightClmIdx = _coveringCell.Column!.Index + _coveringCell.MergeRight;
             double width = RowsRenderer.CalculateLeftIndent(_cell.Table!.Rows).Point;
-            for (int idx = 0; idx <= rightClmIdx; ++idx)
+            for (int idx = 0; idx <= rightClmIdx; idx++)
             {
                 var obj = _cell.Table.Columns[idx].Values.Width;
                 if (obj != null)
